@@ -1,0 +1,149 @@
+/* Additional Component-Specific Styles */
+
+:host {
+  display: block;
+}
+
+/* Smooth Transitions for All Interactive Elements */
+button, .glass-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover Effects for Cards */
+.glass-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Custom Pulse Animation for Glow Effects */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.3), 0 0 40px rgba(6, 182, 212, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(6, 182, 212, 0.6), 0 0 80px rgba(6, 182, 212, 0.3);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Slide Up Animation */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s ease-out;
+}
+
+/* Fade In Animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.8s ease-out;
+}
+
+/* Staggered Animation for Grid Items */
+.grid > div {
+  animation: slide-up 0.6s ease-out;
+}
+
+.grid > div:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.grid > div:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.grid > div:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.grid > div:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+/* File Drop Zone Enhancement */
+[dragover] {
+  border-color: rgb(6, 182, 212) !important;
+  background: rgba(6, 182, 212, 0.05);
+}
+
+/* Progress Bar Animation */
+.progress-bar {
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Spinner Animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Bounce Animation for Loading Dots */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+/* Report Text Styling */
+pre {
+  font-family: 'Courier New', Courier, monospace;
+  text-shadow: 0 0 10px rgba(6, 182, 212, 0.1);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .glass-card {
+    padding: 1rem;
+  }
+  
+  h1 {
+    font-size: 1.5rem;
+  }
+  
+  h2 {
+    font-size: 1.75rem;
+  }
+}
+
+/* Tooltip Enhancement (if needed) */
+[title] {
+  position: relative;
+  cursor: help;
+}
+
+/* Custom Selection Color */
+::selection {
+  background: rgba(6, 182, 212, 0.3);
+  color: white;
+}

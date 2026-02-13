@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  # .NET Backend API
+  api:
+    build:
+      context: .
+      dockerfile: NeuroScan.API/Dockerfile
+    container_name: neuroscan-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/neuroscan.db
+      - Jwt__Key=YourSuperSecretKeyThatIsAtLeast32CharactersLong123456
+      - Jwt__Issuer=NeuroScanAPI
+      - Jwt__Audience=NeuroScanClient
+      - PythonAiService__Url=http://python-ai:8000
+      - OpenAI__ApiKey=${OPENAI_API_KEY}
+      - Storage__UploadPath=/app/uploads/scans
+      - Storage__TrainingDataPath=/app/uploads/training-data
+    ports:
+      - "5000:80"
+    depends_on: []
+    volumes:
+      - api_uploads:/app/uploads
+      - sqlite_data:/app/data
+    networks:
+      - neuroscan-network
+
+  # Python AI Microservice (FastAPI)
+  python-ai:
+    image: tiangolo/uvicorn-gunicorn-fastapi:python3.11
+    container_name: neuroscan-python-ai
+    environment:
+      - MODULE_NAME=main
+      - VARIABLE_NAME=app
+    ports:
+      - "8000:80"
+    volumes:
+      - ./python-ai-service:/app
+    networks:
+      - neuroscan-network
+    command: >
+      sh -c "pip install nibabel numpy scikit-image scipy &&
+             uvicorn main:app --host 0.0.0.0 --port 80 --reload"
+
+volumes:
+  sqlite_data:
+  api_uploads:
+
+networks:
+  neuroscan-network:
+    driver: bridge
