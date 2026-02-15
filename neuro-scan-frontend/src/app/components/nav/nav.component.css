@@ -1,0 +1,46 @@
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.5s ease-out;
+}
+
+/* Profile dropdown animation */
+.animate-slide-up {
+  animation: slide-up 0.2s ease-out;
+}
+
+/* Active link styling */
+a[routerLinkActive] {
+  position: relative;
+}
+
+a[routerLinkActive].bg-white\/20::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: linear-gradient(to bottom, #06b6d4, #14b8a6);
+  border-radius: 0 2px 2px 0;
+}
+
+/* Mobile menu slide animation */
+.md\:hidden > div {
+  animation: slide-down 0.3s ease-out;
+}
+
+/* Rotate arrow animation */
+.rotate-180 {
+  transform: rotate(180deg);
+}

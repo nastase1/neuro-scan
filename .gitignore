@@ -198,3 +198,5 @@ Desktop.ini
 *.cache
 *.tmp
 *~
+python-ai-service/best_anatomy_model_SegResNet.pth
+python-ai-service/best_anatomy_model.pth

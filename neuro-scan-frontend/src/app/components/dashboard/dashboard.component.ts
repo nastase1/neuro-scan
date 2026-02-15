@@ -1,13 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { MriService } from '../../services/mri.service';
 import { AuthService } from '../../services/auth.service';
-import { User, AnalysisResult, ScanStatus } from '../../models/analysis-result.model';
+import { User, AnalysisResult, MriScanDetail } from '../../models/api.models';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
@@ -146,15 +147,15 @@ export class DashboardComponent implements OnInit {
     if (!this.scanId) return;
     
     const pollInterval = setInterval(() => {
-      this.mriService.getAnalysisResult(this.scanId!).subscribe({
-        next: (result) => {
-          if (result) {
+      this.mriService.getScanDetails(this.scanId!).subscribe({
+        next: (result: MriScanDetail) => {
+          if (result && result.analysisResult) {
             clearInterval(pollInterval);
-            this.analysisResult = result;
-            this.displayResults(result);
+            this.analysisResult = result.analysisResult;
+            this.displayResults(result.analysisResult);
           }
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Failed to fetch results:', error);
           clearInterval(pollInterval);
         }

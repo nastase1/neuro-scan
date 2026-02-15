@@ -1,14 +1,14 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { MriScan, AnalysisResult } from '../models/analysis-result.model';
+import { MriScanResponse, MriScanDetail, AnalysisResult } from '../models/api.models';
 import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MriService {
-  private apiUrl = 'http://localhost:5000/api';
+  private apiUrl = 'http://localhost:5133/api';
 
   constructor(
     private http: HttpClient,
@@ -22,35 +22,39 @@ export class MriService {
     });
   }
 
-  uploadScan(patientId: string, file: File): Observable<MriScan> {
+  uploadScan(patientId: string, file: File): Observable<MriScanResponse> {
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('patientId', patientId);
+    formData.append('File', file);
+    formData.append('PatientId', patientId);
 
-    return this.http.post<MriScan>(
-      `${this.apiUrl}/mriscans/upload`,
+    return this.http.post<MriScanResponse>(
+      `${this.apiUrl}/mriscan/upload`,
       formData,
       { headers: this.getHeaders() }
     );
   }
 
-  getScanById(scanId: string): Observable<MriScan> {
-    return this.http.get<MriScan>(
-      `${this.apiUrl}/mriscans/${scanId}`,
+  getScanDetails(scanId: string): Observable<MriScanDetail> {
+    return this.http.get<MriScanDetail>(
+      `${this.apiUrl}/mriscan/${scanId}`,
       { headers: this.getHeaders() }
     );
   }
 
-  getAnalysisResult(scanId: string): Observable<AnalysisResult> {
-    return this.http.get<AnalysisResult>(
-      `${this.apiUrl}/mriscans/${scanId}/analysis`,
+  submitCorrectedMask(scanId: string, file: File): Observable<void> {
+    const formData = new FormData();
+    formData.append('correctedMask', file);
+
+    return this.http.post<void>(
+      `${this.apiUrl}/mriscan/${scanId}/correct-mask`,
+      formData,
       { headers: this.getHeaders() }
     );
   }
 
-  getAllScans(): Observable<MriScan[]> {
-    return this.http.get<MriScan[]>(
-      `${this.apiUrl}/mriscans`,
+  getAllScans(): Observable<MriScanDetail[]> {
+    return this.http.get<MriScanDetail[]>(
+      `${this.apiUrl}/mriscan`,
       { headers: this.getHeaders() }
     );
   }

@@ -1,37 +1,40 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap } from 'rxjs';
-import { User } from '../models/analysis-result.model';
-
-interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-interface LoginResponse {
-  token: string;
-  user: User;
-}
+import { User, LoginRequest, RegisterRequest, AuthResponse } from '../models/api.models';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:5000/api';
+  private apiUrl = 'http://localhost:5133/api';
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
+  private isAuthenticatedSubject = new BehaviorSubject<boolean>(false);
+  public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
   constructor(private http: HttpClient) {
     this.loadUserFromStorage();
   }
 
-  login(email: string, password: string): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, { email, password })
+  register(request: RegisterRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/register`, request)
       .pipe(
         tap(response => {
-          localStorage.setItem('token', response.token);
-          localStorage.setItem('user', JSON.stringify(response.user));
-          this.currentUserSubject.next(response.user);
+          if (response.success && response.token && response.user) {
+            this.setAuthData(response.token, response.user);
+          }
+        })
+      );
+  }
+
+  login(request: LoginRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/login`, request)
+      .pipe(
+        tap(response => {
+          if (response.success && response.token && response.user) {
+            this.setAuthData(response.token, response.user);
+          }
         })
       );
   }
@@ -40,6 +43,7 @@ export class AuthService {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     this.currentUserSubject.next(null);
+    this.isAuthenticatedSubject.next(false);
   }
 
   getToken(): string | null {
@@ -50,10 +54,34 @@ export class AuthService {
     return this.currentUserSubject.value;
   }
 
+  isAuthenticated(): boolean {
+    return this.isAuthenticatedSubject.value;
+  }
+
+  isDoctor(): boolean {
+    const user = this.getCurrentUser();
+    return user?.role === 1; // Doctor role
+  }
+
+  private setAuthData(token: string, user: User): void {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    this.currentUserSubject.next(user);
+    this.isAuthenticatedSubject.next(true);
+  }
+
   private loadUserFromStorage(): void {
+    const token = this.getToken();
     const userStr = localStorage.getItem('user');
-    if (userStr) {
-      this.currentUserSubject.next(JSON.parse(userStr));
+    
+    if (token && userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        this.currentUserSubject.next(user);
+        this.isAuthenticatedSubject.next(true);
+      } catch (error) {
+        this.logout();
+      }
     }
   }
 }
