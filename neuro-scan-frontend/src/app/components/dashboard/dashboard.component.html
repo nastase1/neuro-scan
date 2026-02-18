@@ -4,6 +4,85 @@
 >
   <!-- Main Content Area -->
   <div class="max-w-7xl mx-auto">
+    <!-- Patient Selection Section -->
+    <section
+      *ngIf="!analysisComplete && availablePatients.length > 0"
+      class="mb-8 animate-slide-up"
+    >
+      <div class="glass-card p-6">
+        <div class="flex items-center space-x-3 mb-4">
+          <div
+            class="w-10 h-10 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/50"
+          >
+            <svg
+              class="w-5 h-5 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              ></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-white">Select Patient</h3>
+        </div>
+        <select
+          [(ngModel)]="selectedPatientId"
+          class="w-full px-4 py-3 bg-slate-800/50 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+        >
+          <option
+            *ngFor="let patient of availablePatients"
+            [value]="patient.id"
+          >
+            {{ patient.firstName }} {{ patient.lastName }} - MRN:
+            {{ patient.medicalRecordNumber }}
+          </option>
+        </select>
+      </div>
+    </section>
+
+    <!-- No Patients Warning -->
+    <section
+      *ngIf="!analysisComplete && availablePatients.length === 0"
+      class="mb-8 animate-slide-up"
+    >
+      <div class="glass-card p-8 text-center border-2 border-yellow-500/30">
+        <div
+          class="inline-flex items-center justify-center w-16 h-16 bg-yellow-500/20 rounded-2xl mb-4"
+        >
+          <svg
+            class="w-8 h-8 text-yellow-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            ></path>
+          </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-white mb-2">
+          No Patients Available
+        </h3>
+        <p class="text-gray-400 mb-6">
+          Please create a patient record before uploading MRI scans.
+        </p>
+        <button
+          routerLink="/patients"
+          class="px-8 py-3 bg-gradient-to-r from-cyan-500 to-teal-500 text-white font-semibold rounded-xl hover:shadow-2xl hover:shadow-cyan-500/50 transition-all duration-300 hover:scale-105"
+        >
+          Create Patient
+        </button>
+      </div>
+    </section>
+
     <!-- Hero/Upload Section -->
     <section *ngIf="!analysisComplete" class="mb-8 animate-slide-up">
       <div class="text-center mb-6">
@@ -171,24 +250,40 @@
             ></path>
           </svg>
         </div>
-        <h2 class="text-3xl font-bold text-white mb-2">Analysis Complete</h2>
+        <h2 class="text-3xl font-bold text-white mb-2">
+          Dual-Model Analysis Complete
+        </h2>
         <p class="text-gray-400">
-          Volumetric segmentation and asymmetry detection finished
+          Two independent AI models analyzed your scan for maximum accuracy
         </p>
       </div>
 
-      <!-- Metrics Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <!-- CSF Volume Card -->
-        <div
-          class="glass-card glass-card-hover p-6 group hover:scale-105 transition-all duration-300"
-        >
-          <div class="flex items-center justify-between mb-4">
+      <!-- Model Agreement Banner -->
+      <div
+        class="glass-card p-6 mb-8 border-2"
+        [class.border-emerald-500/50]="avgDiceScore > 0.95"
+        [class.border-yellow-500/50]="
+          avgDiceScore > 0.9 && avgDiceScore <= 0.95
+        "
+        [class.border-orange-500/50]="avgDiceScore <= 0.9"
+      >
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
             <div
-              class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-blue-500/50 transition-shadow"
+              class="w-14 h-14 rounded-2xl flex items-center justify-center"
+              [class.bg-emerald-500/20]="avgDiceScore > 0.95"
+              [class.bg-yellow-500/20]="
+                avgDiceScore > 0.9 && avgDiceScore <= 0.95
+              "
+              [class.bg-orange-500/20]="avgDiceScore <= 0.9"
             >
               <svg
-                class="w-6 h-6 text-blue-400"
+                class="w-7 h-7"
+                [class.text-emerald-400]="avgDiceScore > 0.95"
+                [class.text-yellow-400]="
+                  avgDiceScore > 0.9 && avgDiceScore <= 0.95
+                "
+                [class.text-orange-400]="avgDiceScore <= 0.9"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -197,122 +292,78 @@
                   stroke-linecap="round"
                   stroke-linejoin="round"
                   stroke-width="2"
-                  d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                 ></path>
               </svg>
             </div>
-            <span
-              class="text-xs font-semibold text-gray-400 uppercase tracking-wide"
-              >CSF</span
-            >
-          </div>
-          <h3 class="text-3xl font-bold text-white mb-1">
-            {{ csfVolume }} <span class="text-lg text-gray-400">mL</span>
-          </h3>
-          <p class="text-sm text-gray-400 mb-3">Cerebrospinal Fluid</p>
-          <div class="h-2 bg-slate-700/50 rounded-full overflow-hidden">
-            <div
-              class="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full shadow-lg shadow-blue-500/50"
-              style="width: 73%"
-            ></div>
-          </div>
-        </div>
-
-        <!-- Grey Matter Card -->
-        <div
-          class="glass-card glass-card-hover p-6 group hover:scale-105 transition-all duration-300"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <div
-              class="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-purple-500/50 transition-shadow"
-            >
-              <svg
-                class="w-6 h-6 text-purple-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                ></path>
-              </svg>
+            <div>
+              <h3 class="text-xl font-bold text-white mb-1">
+                Model Agreement: {{ (avgDiceScore * 100).toFixed(1) }}%
+              </h3>
+              <p class="text-sm text-gray-400">
+                <span *ngIf="avgDiceScore > 0.95" class="text-emerald-400"
+                  >✓ Excellent consensus between models</span
+                >
+                <span
+                  *ngIf="avgDiceScore > 0.9 && avgDiceScore <= 0.95"
+                  class="text-yellow-400"
+                  >⚠ Good consensus with minor variations</span
+                >
+                <span *ngIf="avgDiceScore <= 0.9" class="text-orange-400"
+                  >⚠ Moderate disagreement - review recommended</span
+                >
+              </p>
             </div>
-            <span
-              class="text-xs font-semibold text-gray-400 uppercase tracking-wide"
-              >GM</span
-            >
           </div>
-          <h3 class="text-3xl font-bold text-white mb-1">
-            {{ gmVolume }} <span class="text-lg text-gray-400">mL</span>
-          </h3>
-          <p class="text-sm text-gray-400 mb-3">Grey Matter</p>
-          <div class="h-2 bg-slate-700/50 rounded-full overflow-hidden">
+          <div class="text-right">
             <div
-              class="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full shadow-lg shadow-purple-500/50"
-              style="width: 91%"
-            ></div>
-          </div>
-        </div>
-
-        <!-- White Matter Card -->
-        <div
-          class="glass-card glass-card-hover p-6 group hover:scale-105 transition-all duration-300"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <div
-              class="w-12 h-12 bg-teal-500/20 rounded-xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-teal-500/50 transition-shadow"
+              class="text-2xl font-bold mb-1"
+              [class.text-emerald-400]="recommendedModel === 'segresnet'"
+              [class.text-cyan-400]="recommendedModel === 'unet'"
             >
-              <svg
-                class="w-6 h-6 text-teal-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
-                ></path>
-              </svg>
+              {{ recommendedModel.toUpperCase() }}
             </div>
-            <span
-              class="text-xs font-semibold text-gray-400 uppercase tracking-wide"
-              >WM</span
-            >
-          </div>
-          <h3 class="text-3xl font-bold text-white mb-1">
-            {{ wmVolume }} <span class="text-lg text-gray-400">mL</span>
-          </h3>
-          <p class="text-sm text-gray-400 mb-3">White Matter</p>
-          <div class="h-2 bg-slate-700/50 rounded-full overflow-hidden">
-            <div
-              class="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full shadow-lg shadow-teal-500/50"
-              style="width: 85%"
-            ></div>
+            <div class="text-xs text-gray-400 uppercase tracking-wider">
+              Recommended Model
+            </div>
           </div>
         </div>
 
-        <!-- Asymmetry Index Card (HIGHLIGHTED - The Critical One) -->
-        <div
-          class="glass-card p-6 group hover:scale-105 transition-all duration-300 relative overflow-hidden"
-          [class.shadow-2xl]="true"
-          [ngClass]="getAsymmetryShadow()"
-        >
-          <!-- Animated Background Glow -->
-          <div
-            class="absolute inset-0 bg-gradient-to-br opacity-10 animate-pulse-glow"
-            [ngClass]="getAsymmetryColor()"
-          ></div>
+        <!-- Dice Score Details -->
+        <div class="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/10">
+          <div class="text-center">
+            <div class="text-sm text-gray-400 mb-2">CSF Agreement</div>
+            <div class="text-xl font-bold text-cyan-400">
+              {{ (diceScoreCsf * 100).toFixed(1) }}%
+            </div>
+          </div>
+          <div class="text-center">
+            <div class="text-sm text-gray-400 mb-2">GM Agreement</div>
+            <div class="text-xl font-bold text-purple-400">
+              {{ (diceScoreGm * 100).toFixed(1) }}%
+            </div>
+          </div>
+          <div class="text-center">
+            <div class="text-sm text-gray-400 mb-2">WM Agreement</div>
+            <div class="text-xl font-bold text-teal-400">
+              {{ (diceScoreWm * 100).toFixed(1) }}%
+            </div>
+          </div>
+        </div>
+      </div>
 
-          <div class="relative z-10">
-            <div class="flex items-center justify-between mb-4">
+      <!-- Dual Model Comparison Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Model 1 - UNet Results -->
+        <div
+          class="glass-card p-6 border-2"
+          [class.border-cyan-500/50]="recommendedModel === 'unet'"
+          [class.border-white/10]="recommendedModel !== 'unet'"
+        >
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center space-x-3">
               <div
-                class="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transition-all"
-                [class]="'bg-gradient-to-br ' + getAsymmetryColor()"
+                class="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/50"
               >
                 <svg
                   class="w-6 h-6 text-white"
@@ -324,47 +375,267 @@
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     stroke-width="2"
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
                   ></path>
                 </svg>
               </div>
-              <span
-                class="text-xs font-semibold uppercase tracking-wide px-3 py-1 rounded-full"
-                [class]="
-                  getAsymmetryStatus() === 'normal'
-                    ? 'bg-emerald-500/20 text-emerald-400'
-                    : getAsymmetryStatus() === 'warning'
-                      ? 'bg-yellow-500/20 text-yellow-400'
-                      : 'bg-red-500/20 text-red-400'
-                "
-              >
-                {{ getAsymmetryStatus() | uppercase }}
-              </span>
+              <div>
+                <h3 class="text-xl font-bold text-white">UNet Model</h3>
+                <p class="text-xs text-gray-400">Deep Learning Architecture</p>
+              </div>
             </div>
-            <h3 class="text-4xl font-bold text-white mb-1">
-              {{ asymmetryIndex }}<span class="text-xl">%</span>
-            </h3>
-            <p class="text-sm text-gray-300 font-semibold mb-3">
-              Asymmetry Index
-            </p>
-            <div class="h-2 bg-slate-700/50 rounded-full overflow-hidden">
+            <span
+              *ngIf="recommendedModel === 'unet'"
+              class="px-3 py-1 bg-cyan-500/20 text-cyan-400 text-xs font-semibold rounded-full"
+            >
+              RECOMMENDED
+            </span>
+          </div>
+
+          <div class="space-y-4">
+            <!-- CSF -->
+            <div class="glass-card p-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-gray-400">Cerebrospinal Fluid</span>
+                <span class="text-xs font-semibold text-blue-400 uppercase"
+                  >CSF</span
+                >
+              </div>
+              <div class="text-2xl font-bold text-white mb-2">
+                {{ csfVolume }} <span class="text-sm text-gray-400">mL</span>
+              </div>
+              <div class="h-2 bg-slate-700/50 rounded-full overflow-hidden">
+                <div
+                  class="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full"
+                  style="width: 73%"
+                ></div>
+              </div>
+            </div>
+
+            <!-- GM -->
+            <div class="glass-card p-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-gray-400">Grey Matter</span>
+                <span class="text-xs font-semibold text-purple-400 uppercase"
+                  >GM</span
+                >
+              </div>
+              <div class="text-2xl font-bold text-white mb-2">
+                {{ gmVolume }} <span class="text-sm text-gray-400">mL</span>
+              </div>
+              <div class="h-2 bg-slate-700/50 rounded-full overflow-hidden">
+                <div
+                  class="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                  style="width: 91%"
+                ></div>
+              </div>
+            </div>
+
+            <!-- WM -->
+            <div class="glass-card p-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-gray-400">White Matter</span>
+                <span class="text-xs font-semibold text-teal-400 uppercase"
+                  >WM</span
+                >
+              </div>
+              <div class="text-2xl font-bold text-white mb-2">
+                {{ wmVolume }} <span class="text-sm text-gray-400">mL</span>
+              </div>
+              <div class="h-2 bg-slate-700/50 rounded-full overflow-hidden">
+                <div
+                  class="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full"
+                  style="width: 85%"
+                ></div>
+              </div>
+            </div>
+
+            <!-- Asymmetry -->
+            <div class="glass-card p-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-gray-400">Brain Asymmetry</span>
+                <span
+                  class="text-xs font-semibold uppercase"
+                  [class.text-emerald-400]="asymmetryIndex < 10"
+                  [class.text-yellow-400]="
+                    asymmetryIndex >= 10 && asymmetryIndex < 15
+                  "
+                  [class.text-red-400]="asymmetryIndex >= 15"
+                >
+                  {{
+                    asymmetryIndex < 10
+                      ? "NORMAL"
+                      : asymmetryIndex < 15
+                        ? "WARNING"
+                        : "CRITICAL"
+                  }}
+                </span>
+              </div>
+              <div class="text-2xl font-bold text-white mb-2">
+                {{ asymmetryIndex }}<span class="text-lg">%</span>
+              </div>
+              <div class="h-2 bg-slate-700/50 rounded-full overflow-hidden">
+                <div
+                  class="h-full rounded-full"
+                  [class.bg-gradient-to-r]="true"
+                  [class.from-emerald-500]="asymmetryIndex < 10"
+                  [class.to-teal-500]="asymmetryIndex < 10"
+                  [class.from-yellow-500]="
+                    asymmetryIndex >= 10 && asymmetryIndex < 15
+                  "
+                  [class.to-orange-500]="
+                    asymmetryIndex >= 10 && asymmetryIndex < 15
+                  "
+                  [class.from-red-500]="asymmetryIndex >= 15"
+                  [class.to-pink-500]="asymmetryIndex >= 15"
+                  [style.width.%]="asymmetryIndex * 10"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Model 2 - SegResNet Results -->
+        <div
+          class="glass-card p-6 border-2"
+          [class.border-emerald-500/50]="recommendedModel === 'segresnet'"
+          [class.border-white/10]="recommendedModel !== 'segresnet'"
+        >
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center space-x-3">
               <div
-                class="h-full rounded-full shadow-lg transition-all duration-1000"
-                [class]="'bg-gradient-to-r ' + getAsymmetryColor()"
-                [style.width.%]="asymmetryIndex * 10"
-              ></div>
+                class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/50"
+              >
+                <svg
+                  class="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+                  ></path>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-white">SegResNet Model</h3>
+                <p class="text-xs text-gray-400">Residual Segmentation</p>
+              </div>
             </div>
-            <p class="text-xs text-gray-400 mt-2">
-              <span *ngIf="getAsymmetryStatus() === 'normal'"
-                >✓ Within normal range</span
-              >
-              <span *ngIf="getAsymmetryStatus() === 'warning'"
-                >⚠ Requires attention</span
-              >
-              <span *ngIf="getAsymmetryStatus() === 'critical'"
-                >⚠ Critical - Immediate review</span
-              >
-            </p>
+            <span
+              *ngIf="recommendedModel === 'segresnet'"
+              class="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-full"
+            >
+              RECOMMENDED
+            </span>
+          </div>
+
+          <div class="space-y-4">
+            <!-- CSF Model 2 -->
+            <div class="glass-card p-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-gray-400">Cerebrospinal Fluid</span>
+                <span class="text-xs font-semibold text-blue-400 uppercase"
+                  >CSF</span
+                >
+              </div>
+              <div class="text-2xl font-bold text-white mb-2">
+                {{ csfVolumeModel2 }}
+                <span class="text-sm text-gray-400">mL</span>
+              </div>
+              <div class="h-2 bg-slate-700/50 rounded-full overflow-hidden">
+                <div
+                  class="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full"
+                  style="width: 73%"
+                ></div>
+              </div>
+            </div>
+
+            <!-- GM Model 2 -->
+            <div class="glass-card p-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-gray-400">Grey Matter</span>
+                <span class="text-xs font-semibold text-purple-400 uppercase"
+                  >GM</span
+                >
+              </div>
+              <div class="text-2xl font-bold text-white mb-2">
+                {{ gmVolumeModel2 }}
+                <span class="text-sm text-gray-400">mL</span>
+              </div>
+              <div class="h-2 bg-slate-700/50 rounded-full overflow-hidden">
+                <div
+                  class="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                  style="width: 91%"
+                ></div>
+              </div>
+            </div>
+
+            <!-- WM Model 2 -->
+            <div class="glass-card p-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-gray-400">White Matter</span>
+                <span class="text-xs font-semibold text-teal-400 uppercase"
+                  >WM</span
+                >
+              </div>
+              <div class="text-2xl font-bold text-white mb-2">
+                {{ wmVolumeModel2 }}
+                <span class="text-sm text-gray-400">mL</span>
+              </div>
+              <div class="h-2 bg-slate-700/50 rounded-full overflow-hidden">
+                <div
+                  class="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full"
+                  style="width: 85%"
+                ></div>
+              </div>
+            </div>
+
+            <!-- Asymmetry Model 2 -->
+            <div class="glass-card p-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-gray-400">Brain Asymmetry</span>
+                <span
+                  class="text-xs font-semibold uppercase"
+                  [class.text-emerald-400]="asymmetryIndexModel2 < 10"
+                  [class.text-yellow-400]="
+                    asymmetryIndexModel2 >= 10 && asymmetryIndexModel2 < 15
+                  "
+                  [class.text-red-400]="asymmetryIndexModel2 >= 15"
+                >
+                  {{
+                    asymmetryIndexModel2 < 10
+                      ? "NORMAL"
+                      : asymmetryIndexModel2 < 15
+                        ? "WARNING"
+                        : "CRITICAL"
+                  }}
+                </span>
+              </div>
+              <div class="text-2xl font-bold text-white mb-2">
+                {{ asymmetryIndexModel2 }}<span class="text-lg">%</span>
+              </div>
+              <div class="h-2 bg-slate-700/50 rounded-full overflow-hidden">
+                <div
+                  class="h-full rounded-full"
+                  [class.bg-gradient-to-r]="true"
+                  [class.from-emerald-500]="asymmetryIndexModel2 < 10"
+                  [class.to-teal-500]="asymmetryIndexModel2 < 10"
+                  [class.from-yellow-500]="
+                    asymmetryIndexModel2 >= 10 && asymmetryIndexModel2 < 15
+                  "
+                  [class.to-orange-500]="
+                    asymmetryIndexModel2 >= 10 && asymmetryIndexModel2 < 15
+                  "
+                  [class.from-red-500]="asymmetryIndexModel2 >= 15"
+                  [class.to-pink-500]="asymmetryIndexModel2 >= 15"
+                  [style.width.%]="asymmetryIndexModel2 * 10"
+                ></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

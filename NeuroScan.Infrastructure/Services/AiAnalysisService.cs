@@ -12,10 +12,10 @@ public class AiAnalysisService : IAiAnalysisService
     public AiAnalysisService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _pythonApiUrl = configuration["PythonAiService:Url"] ?? "http://python-ai:8000";
+        _pythonApiUrl = configuration["PythonAiService:Url"] ?? "http://localhost:8000";
     }
 
-    public async Task<AiAnalysisResponseDTO> AnalyzeMriScanAsync(string niiFilePath)
+    public async Task<DualModelAnalysisResponseDTO> AnalyzeMriScanAsync(string niiFilePath)
     {
         using var fileStream = File.OpenRead(niiFilePath);
         using var content = new MultipartFormDataContent();
@@ -24,7 +24,7 @@ public class AiAnalysisService : IAiAnalysisService
         var response = await _httpClient.PostAsync($"{_pythonApiUrl}/analyze", content);
         response.EnsureSuccessStatusCode();
 
-        var result = await response.Content.ReadFromJsonAsync<AiAnalysisResponseDTO>();
+        var result = await response.Content.ReadFromJsonAsync<DualModelAnalysisResponseDTO>();
         return result ?? throw new Exception("Failed to deserialize AI response");
     }
 }

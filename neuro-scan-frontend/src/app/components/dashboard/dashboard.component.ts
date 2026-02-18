@@ -1,51 +1,103 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { MriService } from '../../services/mri.service';
+import { PatientService } from '../../services/patient.service';
 import { AuthService } from '../../services/auth.service';
-import { User, AnalysisResult, MriScanDetail } from '../../models/api.models';
+import { User, AnalysisResult, MriScanDetail, Patient } from '../../models/api.models';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   currentUser: User | null = null;
   
   // Upload states
   isDragging = false;
   isUploading = false;
   uploadProgress = 0;
+  uploadError = '';
   
   // Analysis states
   isAnalyzing = false;
   analysisComplete = false;
   
+  // Patient selection
+  selectedPatientId: string | null = null;
+  availablePatients: Patient[] = [];
+  showPatientSelector = false;
+  
   // Analysis results
   analysisResult: AnalysisResult | null = null;
   
-  // Metrics for display
+  // Model 1 (UNet) metrics
   csfVolume = 0;
   gmVolume = 0;
   wmVolume = 0;
   asymmetryIndex = 0;
+  
+  // Model 2 (SegResNet) metrics
+  csfVolumeModel2 = 0;
+  gmVolumeModel2 = 0;
+  wmVolumeModel2 = 0;
+  asymmetryIndexModel2 = 0;
+  
+  // Comparison metrics
+  diceScoreCsf = 0;
+  diceScoreGm = 0;
+  diceScoreWm = 0;
+  avgDiceScore = 0;
+  disagreementPercentage = 0;
+  recommendedModel = 'unet';
+  modelConfidence = 0;
+  
   medicalReport = '';
   
   // UI states
   selectedFile: File | null = null;
   scanId: string | null = null;
+  pollingInterval: any;
 
   constructor(
     private mriService: MriService,
+    private patientService: PatientService,
     private authService: AuthService
   ) {}
 
   ngOnInit(): void {
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
+    });
+    
+    // Load available patients
+    this.loadPatients();
+  }
+
+  ngOnDestroy(): void {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+    }
+  }
+
+  loadPatients(): void {
+    console.log('Loading patients...');
+    this.patientService.getAllPatients().subscribe({
+      next: (patients) => {
+        console.log('Patients loaded:', patients.length, patients);
+        this.availablePatients = patients;
+        if (patients.length > 0) {
+          this.selectedPatientId = patients[0].id;
+          console.log('Selected patient:', this.selectedPatientId);
+        }
+      },
+      error: (error) => {
+        console.error('Failed to load patients:', error);
+      }
     });
   }
 
@@ -78,165 +130,207 @@ export class DashboardComponent implements OnInit {
 
   private handleFileSelection(file: File): void {
     // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'application/dicom', 'image/nifti'];
-    const validExtensions = ['.nii', '.nii.gz', '.dcm', '.jpg', '.jpeg', '.png'];
-    
-    const isValidType = validTypes.includes(file.type) || 
-                       validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+    const validExtensions = ['.nii', '.nii.gz', '.dcm'];
+    const isValidType = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
     
     if (!isValidType) {
-      alert('Please upload a valid MRI file (DICOM, NIfTI, JPEG, PNG)');
+      alert('Please upload a valid MRI file (.nii, .nii.gz, or .dcm)');
+      return;
+    }
+    
+    // Check if patient is selected
+    if (!this.selectedPatientId) {
+      alert('Please select a patient first');
+      this.showPatientSelector = true;
       return;
     }
     
     this.selectedFile = file;
+    this.uploadError = '';
     this.startUpload();
   }
 
   private startUpload(): void {
-    if (!this.selectedFile) return;
+    if (!this.selectedFile || !this.selectedPatientId) return;
     
     this.isUploading = true;
     this.uploadProgress = 0;
+    this.uploadError = '';
     
-    // Mock upload progress
-    const progressInterval = setInterval(() => {
-      this.uploadProgress += 10;
-      if (this.uploadProgress >= 100) {
-        clearInterval(progressInterval);
-        this.isUploading = false;
-        this.startAnalysis();
-      }
-    }, 300);
+    console.log('Starting upload for patient:', this.selectedPatientId);
+    console.log('File:', this.selectedFile.name, 'Size:', this.selectedFile.size);
     
-    // Uncomment for real API integration
-    /*
-    const patientId = 'your-patient-id'; // Get from form or context
-    this.mriService.uploadScan(patientId, this.selectedFile).subscribe({
-      next: (scan) => {
-        this.scanId = scan.id;
+    // Real API call
+    this.mriService.uploadScan(this.selectedPatientId, this.selectedFile).subscribe({
+      next: (response) => {
+        console.log('Upload successful:', response);
+        this.scanId = response.scanId; // Backend returns 'scanId' property
         this.isUploading = false;
+        this.uploadProgress = 100;
         this.startAnalysis();
       },
       error: (error) => {
         console.error('Upload failed:', error);
         this.isUploading = false;
-        alert('Upload failed. Please try again.');
+        this.uploadError = error.error?.message || error.message || 'Upload failed. Please try again.';
+        alert(this.uploadError);
       }
     });
-    */
   }
 
   private startAnalysis(): void {
-    this.isAnalyzing = true;
-    
-    // Mock analysis with delay
-    setTimeout(() => {
-      this.completeAnalysis();
-    }, 3000);
-    
-    // Uncomment for real API integration
-    /*
-    if (this.scanId) {
-      this.pollForResults();
+    if (!this.scanId) {
+      console.error('No scan ID available for analysis');
+      return;
     }
-    */
+    
+    this.isAnalyzing = true;
+    console.log('Starting analysis for scan:', this.scanId);
+    
+    // Poll for results every 2 seconds
+    this.pollForResults();
   }
 
   private pollForResults(): void {
     if (!this.scanId) return;
     
-    const pollInterval = setInterval(() => {
+    let pollAttempts = 0;
+    const maxAttempts = 60; // 2 minutes max (60 * 2 seconds)
+    
+    this.pollingInterval = setInterval(() => {
+      pollAttempts++;
+      console.log(`Polling attempt ${pollAttempts}/${maxAttempts}`);
+      
       this.mriService.getScanDetails(this.scanId!).subscribe({
         next: (result: MriScanDetail) => {
-          if (result && result.analysisResult) {
-            clearInterval(pollInterval);
+          console.log('Scan status:', result.status);
+          
+          if (result.analysisResult) {
+            console.log('Analysis complete!', result.analysisResult);
+            clearInterval(this.pollingInterval);
             this.analysisResult = result.analysisResult;
             this.displayResults(result.analysisResult);
+            this.isAnalyzing = false;
+            this.analysisComplete = true;
+          } else if (result.status === 3) { // Failed status
+            clearInterval(this.pollingInterval);
+            this.isAnalyzing = false;
+            alert('Analysis failed. Please try again or contact support.');
+          } else if (pollAttempts >= maxAttempts) {
+            clearInterval(this.pollingInterval);
+            this.isAnalyzing = false;
+            alert('Analysis is taking longer than expected. Please check back later.');
           }
         },
         error: (error: any) => {
           console.error('Failed to fetch results:', error);
-          clearInterval(pollInterval);
+          if (pollAttempts >= maxAttempts) {
+            clearInterval(this.pollingInterval);
+            this.isAnalyzing = false;
+            alert('Unable to retrieve analysis results. Please try again.');
+          }
         }
       });
-    }, 2000);
-  }
-
-  private completeAnalysis(): void {
-    // Mock data for demonstration
-    this.csfVolume = 145.3;
-    this.gmVolume = 832.7;
-    this.wmVolume = 512.8;
-    this.asymmetryIndex = 8.5;
-    this.medicalReport = `NEURO-IMAGING ANALYSIS REPORT
-
-Patient MRI Analysis - Generated ${new Date().toLocaleDateString()}
-
-VOLUMETRIC ANALYSIS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Cerebrospinal Fluid (CSF): ${this.csfVolume} mL
-- Within normal limits for age group
-- No indications of hydrocephalus
-
-Grey Matter (GM): ${this.gmVolume} mL
-- Volume consistent with healthy baseline
-- Cortical thickness appears normal
-
-White Matter (WM): ${this.wmVolume} mL
-- No significant white matter hyperintensities detected
-- Structural integrity maintained
-
-ASYMMETRY ANALYSIS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Brain Asymmetry Index: ${this.asymmetryIndex}%
-- Below clinical significance threshold (< 10%)
-- Bilateral hemisphere volumes within normal variance
-
-CLINICAL INTERPRETATION:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-The MRI scan demonstrates normal brain structure with appropriate
-tissue volumes for the patient's demographic profile. No acute
-pathological findings detected. Asymmetry index within acceptable
-range, suggesting balanced cerebral development.
-
-RECOMMENDATIONS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-• Routine follow-up in 12 months
-• Continue current treatment plan if applicable
-• No immediate intervention required
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-AI-Assisted Analysis | Requires physician validation
-Generated by NeuroScan AI v2.0`;
-    
-    this.isAnalyzing = false;
-    this.analysisComplete = true;
+    }, 2000); // Poll every 2 seconds
   }
 
   private displayResults(result: AnalysisResult): void {
+    console.log('Displaying results:', result);
+    
+    // Model 1 (UNet) - use existing properties
     this.csfVolume = result.csfVolume;
     this.gmVolume = result.gmVolume;
     this.wmVolume = result.wmVolume;
     this.asymmetryIndex = result.asymmetryIndex;
-    this.medicalReport = result.medicalReportText || 'No report available';
+    
+    // Model 2 (SegResNet)
+    this.csfVolumeModel2 = result.csfVolumeModel2;
+    this.gmVolumeModel2 = result.gmVolumeModel2;
+    this.wmVolumeModel2 = result.wmVolumeModel2;
+    this.asymmetryIndexModel2 = result.asymmetryIndexModel2;
+    
+    // Comparison metrics
+    this.diceScoreCsf = result.diceScoreCsf;
+    this.diceScoreGm = result.diceScoreGm;
+    this.diceScoreWm = result.diceScoreWm;
+    this.avgDiceScore = (this.diceScoreCsf + this.diceScoreGm + this.diceScoreWm) / 3;
+    this.disagreementPercentage = result.disagreementPercentage;
+    this.recommendedModel = result.recommendedModel || 'unet';
+    this.modelConfidence = result.modelConfidence;
+    
+    // Use backend medical report if available, otherwise generate fallback
+    this.medicalReport = result.medicalReportText || this.generateFallbackReport();
     
     this.isAnalyzing = false;
     this.analysisComplete = true;
+  }
+
+  private generateFallbackReport(): string {
+    return `NEURO-IMAGING ANALYSIS REPORT
+DUAL-MODEL AI COMPARISON
+
+Patient MRI Analysis - Generated ${new Date().toLocaleDateString()}
+
+MODEL AGREEMENT & CONFIDENCE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Overall Model Confidence: ${this.modelConfidence.toFixed(1)}%
+Recommended Model: ${this.recommendedModel.toUpperCase()}
+Disagreement: ${this.disagreementPercentage.toFixed(1)}%
+
+Dice Scores (Model Agreement):
+• CSF Agreement: ${(this.diceScoreCsf * 100).toFixed(1)}%
+• GM Agreement: ${(this.diceScoreGm * 100).toFixed(1)}%
+• WM Agreement: ${(this.diceScoreWm * 100).toFixed(1)}%
+
+VOLUMETRIC ANALYSIS - UNet Model:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Cerebrospinal Fluid (CSF): ${this.csfVolume} mL
+Grey Matter (GM): ${this.gmVolume} mL
+White Matter (WM): ${this.wmVolume} mL
+Brain Asymmetry Index: ${this.asymmetryIndex}%
+
+VOLUMETRIC ANALYSIS - SegResNet Model:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Cerebrospinal Fluid (CSF): ${this.csfVolumeModel2} mL
+Grey Matter (GM): ${this.gmVolumeModel2} mL
+White Matter (WM): ${this.wmVolumeModel2} mL
+Brain Asymmetry Index: ${this.asymmetryIndexModel2}%
+
+CLINICAL INTERPRETATION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Both AI models demonstrate ${this.avgDiceScore > 0.95 ? 'excellent' : this.avgDiceScore > 0.90 ? 'good' : 'moderate'} agreement.
+The MRI scan demonstrates brain structure with measured tissue volumes.
+Asymmetry indices from both models are recorded.
+
+RECOMMENDATIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Professional medical review recommended
+• Model agreement: ${this.modelConfidence.toFixed(1)}%
+• Follow clinical guidelines
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Dual-Model AI Analysis | Requires physician validation
+Generated by NeuroScan AI v2.0`;
   }
 
   resetAnalysis(): void {
     this.selectedFile = null;
     this.isUploading = false;
     this.uploadProgress = 0;
+    this.uploadError = '';
     this.isAnalyzing = false;
     this.analysisComplete = false;
     this.analysisResult = null;
     this.scanId = null;
+    
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+    }
   }
 
   getAsymmetryStatus(): 'normal' | 'warning' | 'critical' {

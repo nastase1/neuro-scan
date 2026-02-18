@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NeuroScan.Application.IServices;
 using NeuroScan.Domain.Entities;
@@ -14,6 +15,7 @@ public class MriScanService : IMriScanService
     private readonly IAnalysisResultRepository _analysisResultRepository;
     private readonly IAiAnalysisService _aiAnalysisService;
     private readonly IOpenAiReportService _openAiReportService;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly ILogger<MriScanService> _logger;
     private readonly string _uploadPath;
     private readonly string _trainingDataPath;
@@ -24,6 +26,7 @@ public class MriScanService : IMriScanService
         IAnalysisResultRepository analysisResultRepository,
         IAiAnalysisService aiAnalysisService,
         IOpenAiReportService openAiReportService,
+        IServiceScopeFactory serviceScopeFactory,
         ILogger<MriScanService> logger,
         IConfiguration configuration)
     {
@@ -32,6 +35,7 @@ public class MriScanService : IMriScanService
         _analysisResultRepository = analysisResultRepository;
         _aiAnalysisService = aiAnalysisService;
         _openAiReportService = openAiReportService;
+        _serviceScopeFactory = serviceScopeFactory;
         _logger = logger;
         _uploadPath = configuration["Storage:UploadPath"] ?? "uploads/scans";
         _trainingDataPath = configuration["Storage:TrainingDataPath"] ?? "uploads/training-data";
@@ -73,8 +77,9 @@ public class MriScanService : IMriScanService
 
         await _mriScanRepository.AddAsync(mriScan);
 
-        // Start async processing (fire-and-forget)
-        _ = Task.Run(async () => await ProcessScanAsync(mriScan));
+        // Start async processing (fire-and-forget) with scan ID
+        var scanId = mriScan.Id;
+        _ = Task.Run(async () => await ProcessScanAsync(scanId));
 
         return new MriScanResponseDTO
         {
@@ -84,58 +89,109 @@ public class MriScanService : IMriScanService
         };
     }
 
-    private async Task ProcessScanAsync(MriScan mriScan)
+    private async Task ProcessScanAsync(Guid scanId)
     {
+        // Create a new scope to get fresh DbContext
+        using var scope = _serviceScopeFactory.CreateScope();
+        var mriScanRepository = scope.ServiceProvider.GetRequiredService<IMriScanRepository>();
+        var patientRepository = scope.ServiceProvider.GetRequiredService<IPatientRepository>();
+        var analysisResultRepository = scope.ServiceProvider.GetRequiredService<IAnalysisResultRepository>();
+        var aiAnalysisService = scope.ServiceProvider.GetRequiredService<IAiAnalysisService>();
+        var openAiReportService = scope.ServiceProvider.GetRequiredService<IOpenAiReportService>();
+
         try
         {
+            // Get scan from DB
+            var mriScan = await mriScanRepository.GetByIdAsync(scanId);
+            if (mriScan == null)
+            {
+                _logger.LogError($"Scan {scanId} not found");
+                return;
+            }
+
             // Update status
             mriScan.Status = ScanStatus.Processing;
-            await _mriScanRepository.UpdateAsync(mriScan);
+            await mriScanRepository.UpdateAsync(mriScan);
 
             // Step 1: Call Python AI service
             _logger.LogInformation($"Calling AI service for scan {mriScan.Id}");
-            var aiResult = await _aiAnalysisService.AnalyzeMriScanAsync(mriScan.StoredFilePath);
+            var aiResult = await aiAnalysisService.AnalyzeMriScanAsync(mriScan.StoredFilePath);
 
             // Step 2: Get patient details for report context
-            var patient = await _patientRepository.GetByIdAsync(mriScan.PatientId);
+            var patient = await patientRepository.GetByIdAsync(mriScan.PatientId);
+            if (patient == null)
+            {
+                _logger.LogError($"Patient {mriScan.PatientId} not found for scan {scanId}");
+                mriScan.Status = ScanStatus.Failed;
+                await mriScanRepository.UpdateAsync(mriScan);
+                return;
+            }
+
             var patientContext = new PatientContextDTO
             {
-                PatientName = $"{patient!.FirstName} {patient.LastName}",
+                PatientName = $"{patient.FirstName} {patient.LastName}",
                 Age = CalculateAge(patient.DateOfBirth),
                 ScanDate = mriScan.UploadDate
             };
 
             // Step 3: Generate medical report with OpenAI
             _logger.LogInformation($"Generating medical report for scan {mriScan.Id}");
-            var medicalReport = await _openAiReportService.GenerateMedicalReportAsync(aiResult, patientContext);
+            var medicalReport = await openAiReportService.GenerateMedicalReportAsync(aiResult, patientContext);
 
-            // Step 4: Save analysis result
+            // Step 4: Save analysis result (both models)
             var analysisResult = new AnalysisResult
             {
                 Id = Guid.NewGuid(),
                 MriScanId = mriScan.Id,
-                CsfVolume = aiResult.CsfVolume,
-                GmVolume = aiResult.GmVolume,
-                WmVolume = aiResult.WmVolume,
-                AsymmetryIndex = aiResult.AsymmetryIndex,
+                // Model 1 (UNet) Results
+                CsfVolume = aiResult.Model1.CsfVolume,
+                GmVolume = aiResult.Model1.GmVolume,
+                WmVolume = aiResult.Model1.WmVolume,
+                AsymmetryIndex = aiResult.Model1.AsymmetryIndex,
+                // Model 2 (SegResNet) Results
+                CsfVolumeModel2 = aiResult.Model2.CsfVolume,
+                GmVolumeModel2 = aiResult.Model2.GmVolume,
+                WmVolumeModel2 = aiResult.Model2.WmVolume,
+                AsymmetryIndexModel2 = aiResult.Model2.AsymmetryIndex,
+                // Comparison Metrics
+                DiceScoreCsf = aiResult.Comparison.DiceScores.Csf,
+                DiceScoreGm = aiResult.Comparison.DiceScores.Gm,
+                DiceScoreWm = aiResult.Comparison.DiceScores.Wm,
+                DisagreementPercentage = aiResult.Comparison.DisagreementPercentage,
+                RecommendedModel = aiResult.Comparison.RecommendedModel,
+                ModelConfidence = aiResult.Comparison.Confidence,
+                // Report
                 MedicalReportText = medicalReport,
                 AnalyzedAt = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow
             };
 
-            await _analysisResultRepository.AddAsync(analysisResult);
+            await analysisResultRepository.AddAsync(analysisResult);
 
             // Update scan status
             mriScan.Status = ScanStatus.Analyzed;
-            await _mriScanRepository.UpdateAsync(mriScan);
+            await mriScanRepository.UpdateAsync(mriScan);
 
             _logger.LogInformation($"Scan {mriScan.Id} processed successfully");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error processing scan {mriScan.Id}");
-            mriScan.Status = ScanStatus.Failed;
-            await _mriScanRepository.UpdateAsync(mriScan);
+            _logger.LogError(ex, $"Error processing scan {scanId}");
+
+            // Try to update scan status to Failed
+            try
+            {
+                var mriScan = await mriScanRepository.GetByIdAsync(scanId);
+                if (mriScan != null)
+                {
+                    mriScan.Status = ScanStatus.Failed;
+                    await mriScanRepository.UpdateAsync(mriScan);
+                }
+            }
+            catch (Exception updateEx)
+            {
+                _logger.LogError(updateEx, $"Failed to update scan status for {scanId}");
+            }
         }
     }
 

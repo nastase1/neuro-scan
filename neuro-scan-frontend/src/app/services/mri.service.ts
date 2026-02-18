@@ -3,12 +3,13 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { MriScanResponse, MriScanDetail, AnalysisResult } from '../models/api.models';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MriService {
-  private apiUrl = 'http://localhost:5133/api';
+  private apiUrl = environment.apiUrl;
 
   constructor(
     private http: HttpClient,

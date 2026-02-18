@@ -59,10 +59,8 @@ export interface MriScanUpload {
 }
 
 export interface MriScanResponse {
-  id: string;
-  patientId: string;
-  originalFileName: string;
-  uploadDate: string;
+  scanId: string;
+  message: string;
   status: ScanStatus;
 }
 
@@ -85,10 +83,23 @@ export interface PatientBasic {
 
 export interface AnalysisResult {
   id: string;
+  // Model 1 (UNet) results
   csfVolume: number;
   gmVolume: number;
   wmVolume: number;
   asymmetryIndex: number;
+  // Model 2 (SegResNet) results
+  csfVolumeModel2: number;
+  gmVolumeModel2: number;
+  wmVolumeModel2: number;
+  asymmetryIndexModel2: number;
+  // Comparison metrics
+  diceScoreCsf: number;
+  diceScoreGm: number;
+  diceScoreWm: number;
+  disagreementPercentage: number;
+  recommendedModel?: string;
+  modelConfidence: number;
   medicalReportText?: string;
   analyzedAt: string;
 }

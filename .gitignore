@@ -200,3 +200,5 @@ Desktop.ini
 *~
 python-ai-service/best_anatomy_model_SegResNet.pth
 python-ai-service/best_anatomy_model.pth
+NeuroScan.API/appsettings.json
+NeuroScan.API/appsettings.json
