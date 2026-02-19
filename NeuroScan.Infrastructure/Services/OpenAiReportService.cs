@@ -19,58 +19,37 @@ public class OpenAiReportService : IOpenAiReportService
 
     public async Task<string> GenerateMedicalReportAsync(DualModelAnalysisResponseDTO analysisData, PatientContextDTO patientContext)
     {
-        var systemPrompt = @"You are a medical AI assistant specializing in neuroimaging analysis. 
-Generate a professional medical report based on dual-model MRI brain tissue volume measurements from two independent AI models (UNet and SegResNet).
-Compare the results, assess model agreement using Dice scores, and provide clinical interpretations.
-Include potential abnormalities if volumes deviate significantly from normal ranges.
-Use medical terminology appropriate for physician review.
-Consider the recommended model and confidence score when making clinical conclusions.";
+        // Modificăm System Prompt-ul pentru a include expertiza în epilepsie
+        var systemPrompt = @"You are a specialized neuroradiology AI assistant. 
+Your goal is to generate a clinical report focusing on structural biomarkers associated with epilepsy, such as regional atrophy or significant hemispheric asymmetry.
+You will compare data from two segmentation models (UNet and SegResNet).
+Analyze Gray Matter (GM), White Matter (WM), and Cerebrospinal Fluid (CSF) volumes.
+Pay special attention to the Brain Asymmetry Index and Gray Matter volume discrepancies, as these can indicate potential epileptogenic zones or hippocampal sclerosis.
+IMPORTANT: Provide a clinical correlation section regarding epilepsy risk, but maintain a professional tone, noting that findings must be correlated with EEG and clinical symptoms.";
 
         var comparisonText = analysisData.Comparison.DisagreementPercentage < 5
             ? $"The models show excellent agreement ({analysisData.Comparison.Confidence:F1}% confidence)."
-            : analysisData.Comparison.DisagreementPercentage < 10
-                ? $"The models show good agreement ({analysisData.Comparison.Confidence:F1}% confidence)."
-                : $"The models show moderate disagreement ({analysisData.Comparison.DisagreementPercentage:F1}% disagreement). Clinical review recommended.";
+            : $"The models show a discrepancy of {analysisData.Comparison.DisagreementPercentage:F1}%. Higher caution is advised for focal asymmetry detection.";
 
+        // Îmbogățim User Prompt-ul cu instrucțiuni specifice pentru epilepsie
         var userPrompt = $@"Patient: {patientContext.PatientName}, Age: {patientContext.Age}
 Scan Date: {patientContext.ScanDate:yyyy-MM-dd}
 
 === DUAL-MODEL ANALYSIS RESULTS ===
+Model 1 ({analysisData.Model1.Name}): GM: {analysisData.Model1.GmVolume:F2}cm³, WM: {analysisData.Model1.WmVolume:F2}cm³, Asymmetry Index: {analysisData.Model1.AsymmetryIndex:F4}
+Model 2 ({analysisData.Model2.Name}): GM: {analysisData.Model2.GmVolume:F2}cm³, WM: {analysisData.Model2.WmVolume:F2}cm³, Asymmetry Index: {analysisData.Model2.AsymmetryIndex:F4}
 
-Model 1 ({analysisData.Model1.Name}) - Processing Time: {analysisData.Model1.ProcessingTime:F2}s:
-- CSF Volume: {analysisData.Model1.CsfVolume:F2} cm³
-- Gray Matter Volume: {analysisData.Model1.GmVolume:F2} cm³
-- White Matter Volume: {analysisData.Model1.WmVolume:F2} cm³
-- Brain Asymmetry Index: {analysisData.Model1.AsymmetryIndex:F4}
-
-Model 2 ({analysisData.Model2.Name}) - Processing Time: {analysisData.Model2.ProcessingTime:F2}s:
-- CSF Volume: {analysisData.Model2.CsfVolume:F2} cm³
-- Gray Matter Volume: {analysisData.Model2.GmVolume:F2} cm³
-- White Matter Volume: {analysisData.Model2.WmVolume:F2} cm³
-- Brain Asymmetry Index: {analysisData.Model2.AsymmetryIndex:F4}
-
-=== MODEL COMPARISON ===
-Dice Scores (Agreement Metrics):
-- CSF Dice Score: {analysisData.Comparison.DiceScores.Csf:F4}
-- Gray Matter Dice Score: {analysisData.Comparison.DiceScores.Gm:F4}
-- White Matter Dice Score: {analysisData.Comparison.DiceScores.Wm:F4}
-
-Volume Differences:
-- CSF Difference: {analysisData.Comparison.VolumeDifferences.Csf:F2} cm³
-- Gray Matter Difference: {analysisData.Comparison.VolumeDifferences.Gm:F2} cm³
-- White Matter Difference: {analysisData.Comparison.VolumeDifferences.Wm:F2} cm³
-
-Overall Disagreement: {analysisData.Comparison.DisagreementPercentage:F1}%
+=== COMPARISON DATA ===
+Dice Scores (GM): {analysisData.Comparison.DiceScores.Gm:F4}
+Volume Differences (GM): {analysisData.Comparison.VolumeDifferences.Gm:F2} cm³
 Recommended Model: {analysisData.Comparison.RecommendedModel}
-Model Confidence: {analysisData.Comparison.Confidence:F1}%
 
-{comparisonText}
-
-Generate a comprehensive medical report that:
-1. Summarizes findings from both models
-2. Assesses the reliability based on model agreement
-3. Highlights any significant volume differences or asymmetry
-4. Provides clinical interpretation considering the confidence level";
+Please generate a structured report including:
+1. SUMMARY OF VOLUMETRIC FINDINGS: (Focus on Gray Matter and Asymmetry).
+2. ASYMMETRY ANALYSIS: Does the Brain Asymmetry Index ({analysisData.Model1.AsymmetryIndex:F4}) suggest potential focal cortical dysplasia or hippocampal issues?
+3. EPILEPSY CORRELATION: Based on the volumetric data and asymmetry, identify if there are structural patterns consistent with epilepsy (e.g., significant GM loss or abnormal asymmetry).
+4. RELIABILITY: Comment on the agreement between {analysisData.Model1.Name} and {analysisData.Model2.Name}.
+5. CLINICAL RECOMMENDATION: Suggest if further targeted imaging (like 3T MRI with epilepsy protocol) or EEG correlation is warranted.";
 
         var requestBody = new
         {

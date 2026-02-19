@@ -219,10 +219,24 @@ public class MriScanService : IMriScanService
             },
             AnalysisResult = analysisResult != null ? new AnalysisResultDTO
             {
+                // Model 1 (UNet)
                 CsfVolume = analysisResult.CsfVolume,
                 GmVolume = analysisResult.GmVolume,
                 WmVolume = analysisResult.WmVolume,
                 AsymmetryIndex = analysisResult.AsymmetryIndex,
+                // Model 2 (SegResNet)
+                CsfVolumeModel2 = analysisResult.CsfVolumeModel2,
+                GmVolumeModel2 = analysisResult.GmVolumeModel2,
+                WmVolumeModel2 = analysisResult.WmVolumeModel2,
+                AsymmetryIndexModel2 = analysisResult.AsymmetryIndexModel2,
+                // Comparison metrics
+                DiceScoreCsf = analysisResult.DiceScoreCsf,
+                DiceScoreGm = analysisResult.DiceScoreGm,
+                DiceScoreWm = analysisResult.DiceScoreWm,
+                DisagreementPercentage = analysisResult.DisagreementPercentage,
+                RecommendedModel = analysisResult.RecommendedModel,
+                ModelConfidence = analysisResult.ModelConfidence,
+                // Report
                 MedicalReportText = analysisResult.MedicalReportText,
                 AnalyzedAt = analysisResult.AnalyzedAt
             } : null

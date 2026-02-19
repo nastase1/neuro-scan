@@ -1,10 +1,24 @@
 export interface AnalysisResult {
   id: string;
   mriScanId: string;
+  // Model 1 (UNet) metrics
   csfVolume: number;
   gmVolume: number;
   wmVolume: number;
   asymmetryIndex: number;
+  // Model 2 (SegResNet) metrics
+  csfVolumeModel2: number;
+  gmVolumeModel2: number;
+  wmVolumeModel2: number;
+  asymmetryIndexModel2: number;
+  // Comparison metrics
+  diceScoreCsf: number;
+  diceScoreGm: number;
+  diceScoreWm: number;
+  disagreementPercentage: number;
+  recommendedModel: string;
+  modelConfidence: number;
+  // Report
   medicalReportText: string | null;
   analyzedAt: Date;
 }

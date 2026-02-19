@@ -43,10 +43,27 @@ public class PatientBasicDTO
 
 public class AnalysisResultDTO
 {
+    // Model 1 (UNet) results
     public double CsfVolume { get; set; }
     public double GmVolume { get; set; }
     public double WmVolume { get; set; }
     public double AsymmetryIndex { get; set; }
+
+    // Model 2 (SegResNet) results
+    public double CsfVolumeModel2 { get; set; }
+    public double GmVolumeModel2 { get; set; }
+    public double WmVolumeModel2 { get; set; }
+    public double AsymmetryIndexModel2 { get; set; }
+
+    // Comparison metrics
+    public double DiceScoreCsf { get; set; }
+    public double DiceScoreGm { get; set; }
+    public double DiceScoreWm { get; set; }
+    public double DisagreementPercentage { get; set; }
+    public string RecommendedModel { get; set; } = "unet";
+    public double ModelConfidence { get; set; }
+
+    // Report
     public string? MedicalReportText { get; set; }
     public DateTime AnalyzedAt { get; set; }
 }
