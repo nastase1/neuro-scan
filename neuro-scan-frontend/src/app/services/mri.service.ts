@@ -35,9 +35,27 @@ export class MriService {
     );
   }
 
+  uploadSelfScan(file: File): Observable<MriScanResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return this.http.post<MriScanResponse>(
+      `${this.apiUrl}/mriscan/upload-self`,
+      formData,
+      { headers: this.getHeaders() }
+    );
+  }
+
   getScanDetails(scanId: string): Observable<MriScanDetail> {
     return this.http.get<MriScanDetail>(
       `${this.apiUrl}/mriscan/${scanId}`,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  getPatientScans(patientId: string): Observable<MriScanDetail[]> {
+    return this.http.get<MriScanDetail[]>(
+      `${this.apiUrl}/mriscan/patient/${patientId}`,
       { headers: this.getHeaders() }
     );
   }

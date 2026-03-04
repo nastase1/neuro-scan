@@ -107,7 +107,7 @@ export interface AnalysisResult {
 export enum ScanStatus {
   Uploaded = 0,
   Processing = 1,
-  Completed = 2,
+  Analyzed = 2,
   Failed = 3,
-  UnderReview = 4
+  ReviewedByDoctor = 4
 }

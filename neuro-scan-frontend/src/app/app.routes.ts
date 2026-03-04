@@ -4,7 +4,9 @@ import { LoginComponent } from './components/login/login.component';
 import { RegisterComponent } from './components/register/register.component';
 import { PatientListComponent } from './components/patient-list/patient-list.component';
 import { PatientFormComponent } from './components/patient-form/patient-form.component';
+import { PatientDetailComponent } from './components/patient-detail/patient-detail.component';
 import { authGuard } from './guards/auth.guard';
+import { doctorGuard } from './guards/role.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -18,17 +20,22 @@ export const routes: Routes = [
   { 
     path: 'patients', 
     component: PatientListComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard, doctorGuard]
   },
   { 
     path: 'patients/new', 
     component: PatientFormComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard, doctorGuard]
+  },
+  { 
+    path: 'patients/:id', 
+    component: PatientDetailComponent,
+    canActivate: [authGuard, doctorGuard]
   },
   { 
     path: 'patients/:id/edit', 
     component: PatientFormComponent,
-    canActivate: [authGuard]
+    canActivate: [authGuard, doctorGuard]
   },
   { path: '**', redirectTo: '/login' }
 ];

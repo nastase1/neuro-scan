@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
@@ -13,18 +13,18 @@ import { CreatePatient, UpdatePatient, Patient } from '../../models/api.models';
   styleUrls: ['./patient-form.component.css']
 })
 export class PatientFormComponent implements OnInit {
-  isEditMode = false;
+  isEditMode = signal(false);
   patientId: string | null = null;
-  isLoading = false;
-  isSaving = false;
-  errorMessage = '';
+  isLoading = signal(false);
+  isSaving = signal(false);
+  errorMessage = signal('');
 
-  patient: CreatePatient = {
+  patient = signal<CreatePatient>({
     firstName: '',
     lastName: '',
     dateOfBirth: '',
     medicalRecordNumber: ''
-  };
+  });
 
   constructor(
     private patientService: PatientService,
@@ -34,51 +34,53 @@ export class PatientFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.patientId = this.route.snapshot.paramMap.get('id');
-    this.isEditMode = !!this.patientId && this.route.snapshot.url.some(segment => segment.path === 'edit');
+    this.isEditMode.set(!!this.patientId && this.route.snapshot.url.some(segment => segment.path === 'edit'));
 
-    if (this.isEditMode && this.patientId) {
+    if (this.isEditMode() && this.patientId) {
       this.loadPatient(this.patientId);
     }
   }
 
   loadPatient(patientId: string): void {
-    this.isLoading = true;
+    this.isLoading.set(true);
     
     this.patientService.getPatientById(patientId).subscribe({
       next: (patient: Patient) => {
-        this.patient = {
+        this.patient.set({
           firstName: patient.firstName,
           lastName: patient.lastName,
           dateOfBirth: patient.dateOfBirth,
           medicalRecordNumber: patient.medicalRecordNumber
-        };
-        this.isLoading = false;
+        });
+        this.isLoading.set(false);
       },
       error: (error) => {
         console.error('Error loading patient:', error);
-        this.errorMessage = 'Failed to load patient';
-        this.isLoading = false;
+        this.errorMessage.set('Failed to load patient');
+        this.isLoading.set(false);
       }
     });
   }
 
   onSubmit(): void {
+    const currentPatient = this.patient();
+    
     // Validation
-    if (!this.patient.firstName || !this.patient.lastName || 
-        !this.patient.dateOfBirth || !this.patient.medicalRecordNumber) {
-      this.errorMessage = 'Please fill in all fields';
+    if (!currentPatient.firstName || !currentPatient.lastName || 
+        !currentPatient.dateOfBirth || !currentPatient.medicalRecordNumber) {
+      this.errorMessage.set('Please fill in all fields');
       return;
     }
 
-    this.isSaving = true;
-    this.errorMessage = '';
+    this.isSaving.set(true);
+    this.errorMessage.set('');
 
-    if (this.isEditMode && this.patientId) {
+    if (this.isEditMode() && this.patientId) {
       // Update existing patient
       const updateData: UpdatePatient = {
-        firstName: this.patient.firstName,
-        lastName: this.patient.lastName,
-        dateOfBirth: this.patient.dateOfBirth
+        firstName: currentPatient.firstName,
+        lastName: currentPatient.lastName,
+        dateOfBirth: currentPatient.dateOfBirth
       };
 
       this.patientService.updatePatient(this.patientId, updateData).subscribe({
@@ -87,20 +89,20 @@ export class PatientFormComponent implements OnInit {
         },
         error: (error) => {
           console.error('Error updating patient:', error);
-          this.errorMessage = error.error?.message || 'Failed to update patient';
-          this.isSaving = false;
+          this.errorMessage.set(error.error?.message || 'Failed to update patient');
+          this.isSaving.set(false);
         }
       });
     } else {
       // Create new patient
-      this.patientService.createPatient(this.patient).subscribe({
+      this.patientService.createPatient(currentPatient).subscribe({
         next: () => {
           this.router.navigate(['/patients']);
         },
         error: (error) => {
           console.error('Error creating patient:', error);
-          this.errorMessage = error.error?.message || 'Failed to create patient';
-          this.isSaving = false;
+          this.errorMessage.set(error.error?.message || 'Failed to create patient');
+          this.isSaving.set(false);
         }
       });
     }
@@ -118,5 +120,14 @@ export class PatientFormComponent implements OnInit {
     const date = new Date();
     date.setFullYear(date.getFullYear() - 120);
     return date.toISOString().split('T')[0];
+  }
+
+  // Helper methods for two-way binding with signals
+  updatePatientField(field: keyof CreatePatient, value: string): void {
+    this.patient.update(p => ({ ...p, [field]: value }));
+  }
+
+  getPatientField(field: keyof CreatePatient): string {
+    return this.patient()[field];
   }
 }

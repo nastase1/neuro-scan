@@ -20,9 +20,10 @@ public class MriScanController : ControllerBase
     }
 
     /// <summary>
-    /// Upload a new MRI scan (.nii file)
+    /// Upload a new MRI scan for a patient (Doctor only)
     /// </summary>
     [HttpPost("upload")]
+    [Authorize(Roles = "Doctor")]
     [RequestSizeLimit(500 * 1024 * 1024)] // 500MB limit
     public async Task<ActionResult<MriScanResponseDTO>> UploadScan([FromForm] MriScanUploadDTO uploadDto)
     {
@@ -52,13 +53,74 @@ public class MriScanController : ControllerBase
     }
 
     /// <summary>
-    /// Get scan details with analysis results
+    /// Upload a new MRI scan for yourself (Standard User only)
+    /// </summary>
+    [HttpPost("upload-self")]
+    [Authorize(Roles = "StandardUser")]
+    [RequestSizeLimit(500 * 1024 * 1024)] // 500MB limit
+    public async Task<ActionResult<MriScanResponseDTO>> UploadSelfScan([FromForm] IFormFile file, [FromForm] string? notes = null)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { error = "No file uploaded" });
+        }
+
+        if (!file.FileName.EndsWith(".nii", StringComparison.OrdinalIgnoreCase) &&
+            !file.FileName.EndsWith(".nii.gz", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { error = "Only .nii or .nii.gz files are allowed" });
+        }
+
+        try
+        {
+            var result = await _mriScanService.UploadSelfScanAsync(file, notes, userId);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading MRI scan");
+            return StatusCode(500, new { error = $"Upload failed: {ex.Message}" });
+        }
+    }
+
+    /// <summary>
+    /// Get all scans for a specific patient (Doctor only)
+    /// </summary>
+    [HttpGet("patient/{patientId}")]
+    [Authorize(Roles = "Doctor")]
+    public async Task<ActionResult<IEnumerable<MriScanDetailDTO>>> GetPatientScans(Guid patientId)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        try
+        {
+            var scans = await _mriScanService.GetScansByPatientIdAsync(patientId, userId);
+            return Ok(scans);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting patient scans");
+            return StatusCode(500, new { error = "Failed to retrieve scans" });
+        }
+    }
+
+    /// <summary>
+    /// Get scan details with analysis results (Doctors can view any scan)
     /// </summary>
     [HttpGet("{scanId}")]
     public async Task<ActionResult<MriScanDetailDTO>> GetScanDetails(Guid scanId)
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var result = await _mriScanService.GetScanDetailsAsync(scanId, userId);
+        var userRole = User.FindFirstValue(ClaimTypes.Role);
+
+        // Doctors can access any scan, standard users only their own patients' scans
+        var result = await _mriScanService.GetScanDetailsAsync(scanId, userId, userRole == "Doctor");
 
         if (result == null)
         {

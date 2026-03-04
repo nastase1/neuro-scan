@@ -36,6 +36,7 @@
             Dashboard
           </a>
           <a
+            *ngIf="isDoctor()"
             routerLink="/patients"
             routerLinkActive="bg-white/20 text-cyan-400"
             [routerLinkActiveOptions]="{ exact: false }"
@@ -209,6 +210,7 @@
         Dashboard
       </a>
       <a
+        *ngIf="isDoctor()"
         routerLink="/patients"
         routerLinkActive="bg-white/20 text-cyan-400"
         (click)="closeMenus()"

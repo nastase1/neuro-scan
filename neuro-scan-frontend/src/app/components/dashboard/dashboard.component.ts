@@ -1,11 +1,11 @@
 import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MriService } from '../../services/mri.service';
 import { PatientService } from '../../services/patient.service';
 import { AuthService } from '../../services/auth.service';
-import { User, AnalysisResult, MriScanDetail, Patient } from '../../models/api.models';
+import { User, AnalysisResult, MriScanDetail, Patient, ScanStatus } from '../../models/api.models';
 import jsPDF from 'jspdf';
 
 @Component({
@@ -67,8 +67,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
   constructor(
     private mriService: MriService,
     private patientService: PatientService,
-    private authService: AuthService
+    private route: ActivatedRoute,
+    public authService: AuthService
   ) {}
+
+  isDoctor(): boolean {
+    return this.authService.isDoctor();
+  }
+
+  isStandardUser(): boolean {
+    return !this.authService.isDoctor();
+  }
 
   ngOnInit(): void {
     this.authService.currentUser$.subscribe(user => {
@@ -77,6 +86,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
     
     // Load available patients
     this.loadPatients();
+    
+    // Check if we have a scanId in query params (coming from scan list)
+    this.route.queryParams.subscribe(params => {
+      const scanId = params['scanId'];
+      if (scanId) {
+        console.log('Loading scan from query param:', scanId);
+        this.loadExistingScan(scanId);
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -98,6 +116,43 @@ export class DashboardComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Failed to load patients:', error);
+      }
+    });
+  }
+
+  loadExistingScan(scanId: string): void {
+    console.log('Loading existing scan:', scanId);
+    this.scanId = scanId;
+    this.isAnalyzing.set(true);
+    
+    this.mriService.getScanDetails(scanId).subscribe({
+      next: (result: MriScanDetail) => {
+        console.log('Scan loaded:', result);
+        
+        if (result.analysisResult) {
+          // Display the analysis results
+          this.analysisResult.set(result.analysisResult);
+          this.displayResults(result.analysisResult);
+          this.isAnalyzing.set(false);
+          this.analysisComplete.set(true);
+        } else if (result.status === ScanStatus.Processing) { // Processing
+          // Still processing, start polling
+          this.isAnalyzing.set(true);
+          this.pollForResults();
+        } else {
+          // No results yet or failed
+          this.isAnalyzing.set(false);
+          if (result.status === ScanStatus.Failed) { // Failed
+            alert('This scan analysis has failed.');
+          } else {
+            alert('Analysis results are not ready yet.');
+          }
+        }
+      },
+      error: (error: any) => {
+        console.error('Failed to load scan:', error);
+        this.isAnalyzing.set(false);
+        alert('Unable to load scan details. You may not have access to this scan.');
       }
     });
   }
@@ -147,8 +202,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       return;
     }
     
-    // Check if patient is selected
-    if (!this.selectedPatientId()) {
+    // For doctors, check if patient is selected. For standard users, skip patient check.
+    if (this.isDoctor() && !this.selectedPatientId()) {
       alert('Please select a patient first');
       this.showPatientSelector = true;
       return;
@@ -160,7 +215,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private startUpload(): void {
-    if (!this.selectedFile || !this.selectedPatientId()) return;
+    if (!this.selectedFile) return;
+    
+    // For doctors, patientId is required. For standard users, it's not.
+    if (this.isDoctor() && !this.selectedPatientId()) return;
     
     this.isUploading.set(true);
     this.uploadProgress.set(0);
@@ -169,8 +227,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
     console.log('Starting upload for patient:', this.selectedPatientId());
     console.log('File:', this.selectedFile.name, 'Size:', this.selectedFile.size);
     
+    // Call different endpoint based on user role
+    const uploadObservable = this.isStandardUser()
+      ? this.mriService.uploadSelfScan(this.selectedFile)
+      : this.mriService.uploadScan(this.selectedPatientId()!, this.selectedFile);
+    
     // Real API call
-    this.mriService.uploadScan(this.selectedPatientId()!, this.selectedFile).subscribe({
+    uploadObservable.subscribe({
       next: (response) => {
         console.log('Upload successful:', response);
         this.scanId = response.scanId; // Backend returns 'scanId' property
@@ -222,7 +285,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
             this.displayResults(result.analysisResult);
             this.isAnalyzing.set(false);
             this.analysisComplete.set(true);
-          } else if (result.status === 3) { // Failed status
+          } else if (result.status === ScanStatus.Failed) { // Failed status
             clearInterval(this.pollingInterval);
             this.isAnalyzing.set(false);
             alert('Analysis failed. Please try again or contact support.');

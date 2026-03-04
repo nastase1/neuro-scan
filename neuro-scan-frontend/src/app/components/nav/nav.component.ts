@@ -57,6 +57,10 @@ export class NavComponent implements OnInit {
     return this.authService.isDoctor() ? 'Doctor' : 'User';
   }
 
+  isDoctor(): boolean {
+    return this.authService.isDoctor();
+  }
+
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);

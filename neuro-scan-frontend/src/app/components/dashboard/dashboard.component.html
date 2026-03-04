@@ -4,9 +4,11 @@
 >
   <!-- Main Content Area -->
   <div class="max-w-7xl mx-auto">
-    <!-- Patient Selection Section -->
+    <!-- Patient Selection Section (Doctors Only) -->
     <section
-      *ngIf="!analysisComplete() && availablePatients().length > 0"
+      *ngIf="
+        !analysisComplete() && isDoctor() && availablePatients().length > 0
+      "
       class="mb-8 animate-slide-up"
     >
       <div class="glass-card p-6">
@@ -29,6 +31,11 @@
             </svg>
           </div>
           <h3 class="text-xl font-bold text-white">Select Patient</h3>
+          <span
+            class="ml-auto text-xs text-purple-400 bg-purple-900/30 px-2 py-1 rounded"
+          >
+            Your Patients Only
+          </span>
         </div>
         <select
           [value]="selectedPatientId()"
@@ -46,9 +53,11 @@
       </div>
     </section>
 
-    <!-- No Patients Warning -->
+    <!-- No Patients Warning (Doctors Only) -->
     <section
-      *ngIf="!analysisComplete() && availablePatients().length === 0"
+      *ngIf="
+        !analysisComplete() && isDoctor() && availablePatients().length === 0
+      "
       class="mb-8 animate-slide-up"
     >
       <div class="glass-card p-8 text-center border-2 border-yellow-500/30">

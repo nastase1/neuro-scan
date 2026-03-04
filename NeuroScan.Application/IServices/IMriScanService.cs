@@ -6,7 +6,9 @@ namespace NeuroScan.Application.IServices;
 public interface IMriScanService
 {
     Task<MriScanResponseDTO> UploadAndProcessScanAsync(MriScanUploadDTO uploadDto, Guid userId);
-    Task<MriScanDetailDTO?> GetScanDetailsAsync(Guid scanId, Guid userId);
+    Task<MriScanResponseDTO> UploadSelfScanAsync(IFormFile file, string? notes, Guid userId);
+    Task<MriScanDetailDTO?> GetScanDetailsAsync(Guid scanId, Guid userId, bool isDoctor = false);
+    Task<IEnumerable<MriScanDetailDTO>> GetScansByPatientIdAsync(Guid patientId, Guid doctorId);
     Task SubmitCorrectedMaskAsync(Guid scanId, IFormFile correctedMask, Guid doctorId);
     Task<IEnumerable<MriScanSummaryDTO>> GetPendingReviewScansAsync();
 }

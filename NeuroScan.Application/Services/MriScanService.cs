@@ -12,6 +12,7 @@ public class MriScanService : IMriScanService
 {
     private readonly IMriScanRepository _mriScanRepository;
     private readonly IPatientRepository _patientRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IAnalysisResultRepository _analysisResultRepository;
     private readonly IAiAnalysisService _aiAnalysisService;
     private readonly IOpenAiReportService _openAiReportService;
@@ -23,6 +24,7 @@ public class MriScanService : IMriScanService
     public MriScanService(
         IMriScanRepository mriScanRepository,
         IPatientRepository patientRepository,
+        IUserRepository userRepository,
         IAnalysisResultRepository analysisResultRepository,
         IAiAnalysisService aiAnalysisService,
         IOpenAiReportService openAiReportService,
@@ -32,6 +34,7 @@ public class MriScanService : IMriScanService
     {
         _mriScanRepository = mriScanRepository;
         _patientRepository = patientRepository;
+        _userRepository = userRepository;
         _analysisResultRepository = analysisResultRepository;
         _aiAnalysisService = aiAnalysisService;
         _openAiReportService = openAiReportService;
@@ -69,6 +72,71 @@ public class MriScanService : IMriScanService
             Id = Guid.NewGuid(),
             PatientId = uploadDto.PatientId,
             OriginalFileName = uploadDto.File.FileName,
+            StoredFilePath = filePath,
+            UploadDate = DateTime.UtcNow,
+            Status = ScanStatus.Uploaded,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _mriScanRepository.AddAsync(mriScan);
+
+        // Start async processing (fire-and-forget) with scan ID
+        var scanId = mriScan.Id;
+        _ = Task.Run(async () => await ProcessScanAsync(scanId));
+
+        return new MriScanResponseDTO
+        {
+            ScanId = mriScan.Id,
+            Message = "Scan uploaded successfully. Processing started.",
+            Status = ScanStatus.Processing
+        };
+    }
+
+    public async Task<MriScanResponseDTO> UploadSelfScanAsync(IFormFile file, string? notes, Guid userId)
+    {
+        // Get user details
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null)
+        {
+            throw new UnauthorizedAccessException("User not found");
+        }
+
+        // Find or create patient record for this user
+        var patients = await _patientRepository.GetByUserIdAsync(userId);
+        var patient = patients.FirstOrDefault();
+
+        if (patient == null)
+        {
+            // Create a new patient record for this user
+            patient = new Patient
+            {
+                Id = Guid.NewGuid(),
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                DateOfBirth = DateTime.UtcNow.AddYears(-30), // Default placeholder
+                MedicalRecordNumber = $"SELF-{userId.ToString()[..8].ToUpper()}",
+                CreatedByUserId = userId, // User creates their own patient record
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _patientRepository.AddAsync(patient);
+        }
+
+        // Save file to disk
+        var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+        var filePath = Path.Combine(_uploadPath, fileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        // Create MriScan record
+        var mriScan = new MriScan
+        {
+            Id = Guid.NewGuid(),
+            PatientId = patient.Id,
+            OriginalFileName = file.FileName,
             StoredFilePath = filePath,
             UploadDate = DateTime.UtcNow,
             Status = ScanStatus.Uploaded,
@@ -195,13 +263,16 @@ public class MriScanService : IMriScanService
         }
     }
 
-    public async Task<MriScanDetailDTO?> GetScanDetailsAsync(Guid scanId, Guid userId)
+    public async Task<MriScanDetailDTO?> GetScanDetailsAsync(Guid scanId, Guid userId, bool isDoctor = false)
     {
         var scan = await _mriScanRepository.GetByIdAsync(scanId);
         if (scan == null) return null;
 
         var patient = await _patientRepository.GetByIdAsync(scan.PatientId);
-        if (patient == null || patient.CreatedByUserId != userId) return null;
+        if (patient == null) return null;
+
+        // Check access: doctors can see all, regular users only their own patients
+        if (!isDoctor && patient.CreatedByUserId != userId) return null;
 
         var analysisResult = await _analysisResultRepository.GetByMriScanIdAsync(scanId);
 
@@ -241,6 +312,64 @@ public class MriScanService : IMriScanService
                 AnalyzedAt = analysisResult.AnalyzedAt
             } : null
         };
+    }
+
+    public async Task<IEnumerable<MriScanDetailDTO>> GetScansByPatientIdAsync(Guid patientId, Guid doctorId)
+    {
+        // Verify patient exists and doctor has access
+        var patient = await _patientRepository.GetByIdAsync(patientId);
+        if (patient == null || patient.CreatedByUserId != doctorId)
+        {
+            throw new UnauthorizedAccessException("Patient not found or access denied");
+        }
+
+        // Get all scans for this patient
+        var scans = await _mriScanRepository.GetByPatientIdAsync(patientId);
+        var scanDetails = new List<MriScanDetailDTO>();
+
+        foreach (var scan in scans)
+        {
+            var analysisResult = await _analysisResultRepository.GetByMriScanIdAsync(scan.Id);
+
+            scanDetails.Add(new MriScanDetailDTO
+            {
+                Id = scan.Id,
+                OriginalFileName = scan.OriginalFileName,
+                UploadDate = scan.UploadDate,
+                Status = scan.Status,
+                Patient = new PatientBasicDTO
+                {
+                    Id = patient.Id,
+                    FullName = $"{patient.FirstName} {patient.LastName}",
+                    MedicalRecordNumber = patient.MedicalRecordNumber
+                },
+                AnalysisResult = analysisResult != null ? new AnalysisResultDTO
+                {
+                    // Model 1 (UNet)
+                    CsfVolume = analysisResult.CsfVolume,
+                    GmVolume = analysisResult.GmVolume,
+                    WmVolume = analysisResult.WmVolume,
+                    AsymmetryIndex = analysisResult.AsymmetryIndex,
+                    // Model 2 (SegResNet)
+                    CsfVolumeModel2 = analysisResult.CsfVolumeModel2,
+                    GmVolumeModel2 = analysisResult.GmVolumeModel2,
+                    WmVolumeModel2 = analysisResult.WmVolumeModel2,
+                    AsymmetryIndexModel2 = analysisResult.AsymmetryIndexModel2,
+                    // Comparison metrics
+                    DiceScoreCsf = analysisResult.DiceScoreCsf,
+                    DiceScoreGm = analysisResult.DiceScoreGm,
+                    DiceScoreWm = analysisResult.DiceScoreWm,
+                    DisagreementPercentage = analysisResult.DisagreementPercentage,
+                    RecommendedModel = analysisResult.RecommendedModel,
+                    ModelConfidence = analysisResult.ModelConfidence,
+                    // Report
+                    MedicalReportText = analysisResult.MedicalReportText,
+                    AnalyzedAt = analysisResult.AnalyzedAt
+                } : null
+            });
+        }
+
+        return scanDetails;
     }
 
     public async Task SubmitCorrectedMaskAsync(Guid scanId, IFormFile correctedMask, Guid doctorId)

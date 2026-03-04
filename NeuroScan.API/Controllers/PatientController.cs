@@ -20,9 +20,10 @@ public class PatientController : ControllerBase
     }
 
     /// <summary>
-    /// Get all patients created by the current user
+    /// Get all patients created by the current doctor (Doctor-only)
     /// </summary>
     [HttpGet]
+    [Authorize(Roles = "Doctor")]
     public async Task<ActionResult<IEnumerable<PatientDTO>>> GetAllPatients()
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -31,9 +32,10 @@ public class PatientController : ControllerBase
     }
 
     /// <summary>
-    /// Get a specific patient by ID
+    /// Get a specific patient by ID (Doctor-only, only their own patients)
     /// </summary>
     [HttpGet("{patientId}")]
+    [Authorize(Roles = "Doctor")]
     public async Task<ActionResult<PatientDTO>> GetPatient(Guid patientId)
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -48,9 +50,10 @@ public class PatientController : ControllerBase
     }
 
     /// <summary>
-    /// Create a new patient
+    /// Create a new patient (Doctor-only)
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = "Doctor")]
     public async Task<ActionResult<PatientDTO>> CreatePatient([FromBody] CreatePatientDTO dto)
     {
         try
@@ -71,9 +74,10 @@ public class PatientController : ControllerBase
     }
 
     /// <summary>
-    /// Update an existing patient
+    /// Update an existing patient (Doctor-only, only their own patients)
     /// </summary>
     [HttpPut("{patientId}")]
+    [Authorize(Roles = "Doctor")]
     public async Task<ActionResult<PatientDTO>> UpdatePatient(Guid patientId, [FromBody] UpdatePatientDTO dto)
     {
         try
