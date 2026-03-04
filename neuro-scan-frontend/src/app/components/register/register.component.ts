@@ -27,8 +27,6 @@ export class RegisterComponent {
   showPassword = false;
   showConfirmPassword = false;
 
-  UserRole = UserRole;
-
   constructor(
     private authService: AuthService,
     private router: Router
