@@ -7,6 +7,8 @@ public interface IAuthService
     Task<AuthResponseDTO> RegisterAsync(RegisterRequestDTO request);
     Task<AuthResponseDTO> LoginAsync(LoginRequestDTO request);
     Task<User?> GetCurrentUserAsync(Guid userId);
+    Task<GenericResponseDTO> ForgotPasswordAsync(ForgotPasswordRequestDTO request);
+    Task<GenericResponseDTO> ResetPasswordAsync(ResetPasswordRequestDTO request);
 }
 
 public class AuthResponseDTO
@@ -39,4 +41,23 @@ public class UserDTO
     public required string LastName { get; set; }
     public required string Email { get; set; }
     public UserRole Role { get; set; }
+}
+
+public class ForgotPasswordRequestDTO
+{
+    public required string Email { get; set; }
+}
+
+public class ResetPasswordRequestDTO
+{
+    public required string Email { get; set; }
+    public required string Code { get; set; }
+    public required string NewPassword { get; set; }
+    public required string ConfirmPassword { get; set; }
+}
+
+public class GenericResponseDTO
+{
+    public bool Success { get; set; }
+    public string? Message { get; set; }
 }

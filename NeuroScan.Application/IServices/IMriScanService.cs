@@ -9,6 +9,7 @@ public interface IMriScanService
     Task<MriScanResponseDTO> UploadSelfScanAsync(IFormFile file, string? notes, Guid userId);
     Task<MriScanDetailDTO?> GetScanDetailsAsync(Guid scanId, Guid userId, bool isDoctor = false);
     Task<IEnumerable<MriScanDetailDTO>> GetScansByPatientIdAsync(Guid patientId, Guid doctorId);
+    Task<IEnumerable<MriScanDetailDTO>> GetMyScansAsync(Guid userId);
     Task SubmitCorrectedMaskAsync(Guid scanId, IFormFile correctedMask, Guid doctorId);
     Task<IEnumerable<MriScanSummaryDTO>> GetPendingReviewScansAsync();
 }

@@ -5,6 +5,8 @@ import { RegisterComponent } from './components/register/register.component';
 import { PatientListComponent } from './components/patient-list/patient-list.component';
 import { PatientFormComponent } from './components/patient-form/patient-form.component';
 import { PatientDetailComponent } from './components/patient-detail/patient-detail.component';
+import { ForgotPasswordComponent } from './components/forgot-password/forgot-password.component';
+import { ScanHistoryComponent } from './components/scan-history/scan-history.component';
 import { authGuard } from './guards/auth.guard';
 import { doctorGuard } from './guards/role.guard';
 
@@ -12,6 +14,12 @@ export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
+  { path: 'forgot-password', component: ForgotPasswordComponent },
+  {
+    path: 'scan-history',
+    component: ScanHistoryComponent,
+    canActivate: [authGuard]
+  },
   { 
     path: 'dashboard', 
     component: DashboardComponent,

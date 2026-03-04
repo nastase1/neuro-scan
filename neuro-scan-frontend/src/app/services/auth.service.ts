@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap } from 'rxjs';
-import { User, LoginRequest, RegisterRequest, AuthResponse } from '../models/api.models';
+import { User, LoginRequest, RegisterRequest, AuthResponse, ForgotPasswordRequest, ResetPasswordRequest, GenericResponse } from '../models/api.models';
 import { environment } from '../../environments/environment';
 
 @Injectable({
@@ -45,6 +45,14 @@ export class AuthService {
     localStorage.removeItem('user');
     this.currentUserSubject.next(null);
     this.isAuthenticatedSubject.next(false);
+  }
+
+  forgotPassword(request: ForgotPasswordRequest): Observable<GenericResponse> {
+    return this.http.post<GenericResponse>(`${this.apiUrl}/auth/forgot-password`, request);
+  }
+
+  resetPassword(request: ResetPasswordRequest): Observable<GenericResponse> {
+    return this.http.post<GenericResponse>(`${this.apiUrl}/auth/reset-password`, request);
   }
 
   getToken(): string | null {

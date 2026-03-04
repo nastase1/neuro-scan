@@ -157,6 +157,17 @@ public class MriScanController : ControllerBase
     }
 
     /// <summary>
+    /// Get all scans belonging to the current user (Standard User)
+    /// </summary>
+    [HttpGet("my-scans")]
+    public async Task<ActionResult<IEnumerable<MriScanDetailDTO>>> GetMyScans()
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var scans = await _mriScanService.GetMyScansAsync(userId);
+        return Ok(scans);
+    }
+
+    /// <summary>
     /// Get scans pending doctor review
     /// </summary>
     [HttpGet("pending-review")]

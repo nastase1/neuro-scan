@@ -93,6 +93,58 @@
       </div>
     </section>
 
+    <!-- Quick Access: Scan History (Standard Users) -->
+    <section
+      *ngIf="!analysisComplete() && !isDoctor()"
+      class="mb-6 animate-slide-up"
+    >
+      <a
+        routerLink="/scan-history"
+        class="glass-card p-5 flex items-center space-x-4 hover:border-cyan-500/40 transition-all duration-300 group cursor-pointer"
+      >
+        <div
+          class="w-12 h-12 bg-gradient-to-br from-cyan-500/20 to-teal-500/20 group-hover:from-cyan-500/30 group-hover:to-teal-500/30 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
+        >
+          <svg
+            class="w-6 h-6 text-cyan-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+            ></path>
+          </svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p
+            class="text-white font-semibold group-hover:text-cyan-300 transition-colors"
+          >
+            My Scan History
+          </p>
+          <p class="text-gray-400 text-sm">
+            View all MRI scans you or your doctor uploaded for you
+          </p>
+        </div>
+        <svg
+          class="w-5 h-5 text-gray-500 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all flex-shrink-0"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 5l7 7-7 7"
+          ></path>
+        </svg>
+      </a>
+    </section>
+
     <!-- Hero/Upload Section -->
     <section *ngIf="!analysisComplete()" class="mb-8 animate-slide-up">
       <div class="text-center mb-6">

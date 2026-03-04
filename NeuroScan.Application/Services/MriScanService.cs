@@ -372,6 +372,59 @@ public class MriScanService : IMriScanService
         return scanDetails;
     }
 
+    public async Task<IEnumerable<MriScanDetailDTO>> GetMyScansAsync(Guid userId)
+    {
+        // Get all patients owned by this user (self-scans & doctor-created for them)
+        var patients = await _patientRepository.GetByUserIdAsync(userId);
+        var scanDetails = new List<MriScanDetailDTO>();
+
+        foreach (var patient in patients)
+        {
+            var scans = await _mriScanRepository.GetByPatientIdAsync(patient.Id);
+
+            foreach (var scan in scans)
+            {
+                var analysisResult = await _analysisResultRepository.GetByMriScanIdAsync(scan.Id);
+
+                scanDetails.Add(new MriScanDetailDTO
+                {
+                    Id = scan.Id,
+                    OriginalFileName = scan.OriginalFileName,
+                    UploadDate = scan.UploadDate,
+                    Status = scan.Status,
+                    Patient = new PatientBasicDTO
+                    {
+                        Id = patient.Id,
+                        FullName = $"{patient.FirstName} {patient.LastName}",
+                        MedicalRecordNumber = patient.MedicalRecordNumber
+                    },
+                    AnalysisResult = analysisResult != null ? new AnalysisResultDTO
+                    {
+                        CsfVolume = analysisResult.CsfVolume,
+                        GmVolume = analysisResult.GmVolume,
+                        WmVolume = analysisResult.WmVolume,
+                        AsymmetryIndex = analysisResult.AsymmetryIndex,
+                        CsfVolumeModel2 = analysisResult.CsfVolumeModel2,
+                        GmVolumeModel2 = analysisResult.GmVolumeModel2,
+                        WmVolumeModel2 = analysisResult.WmVolumeModel2,
+                        AsymmetryIndexModel2 = analysisResult.AsymmetryIndexModel2,
+                        DiceScoreCsf = analysisResult.DiceScoreCsf,
+                        DiceScoreGm = analysisResult.DiceScoreGm,
+                        DiceScoreWm = analysisResult.DiceScoreWm,
+                        DisagreementPercentage = analysisResult.DisagreementPercentage,
+                        RecommendedModel = analysisResult.RecommendedModel,
+                        ModelConfidence = analysisResult.ModelConfidence,
+                        MedicalReportText = analysisResult.MedicalReportText,
+                        AnalyzedAt = analysisResult.AnalyzedAt
+                    } : null
+                });
+            }
+        }
+
+        // Newest first
+        return scanDetails.OrderByDescending(s => s.UploadDate);
+    }
+
     public async Task SubmitCorrectedMaskAsync(Guid scanId, IFormFile correctedMask, Guid doctorId)
     {
         var scan = await _mriScanRepository.GetByIdAsync(scanId);

@@ -77,4 +77,11 @@ export class MriService {
       { headers: this.getHeaders() }
     );
   }
+
+  getMyScans(): Observable<MriScanDetail[]> {
+    return this.http.get<MriScanDetail[]>(
+      `${this.apiUrl}/mriscan/my-scans`,
+      { headers: this.getHeaders() }
+    );
+  }
 }

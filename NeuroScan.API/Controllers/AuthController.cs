@@ -45,4 +45,30 @@ public class AuthController : ControllerBase
 
         return Ok(result);
     }
+
+    /// <summary>
+    /// Send password reset code to email
+    /// </summary>
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult<GenericResponseDTO>> ForgotPassword([FromBody] ForgotPasswordRequestDTO request)
+    {
+        var result = await _authService.ForgotPasswordAsync(request);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Reset password using 6-digit code
+    /// </summary>
+    [HttpPost("reset-password")]
+    public async Task<ActionResult<GenericResponseDTO>> ResetPassword([FromBody] ResetPasswordRequestDTO request)
+    {
+        var result = await _authService.ResetPasswordAsync(request);
+
+        if (!result.Success)
+        {
+            return BadRequest(result);
+        }
+
+        return Ok(result);
+    }
 }

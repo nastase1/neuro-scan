@@ -8,6 +8,10 @@ public class User : BaseEntity
     public required string PasswordHash { get; set; }
     public required UserRole Role { get; set; }
 
+    // Password reset
+    public string? PasswordResetCode { get; set; }
+    public DateTime? PasswordResetCodeExpiry { get; set; }
+
     // Navigation properties
     public ICollection<Patient> Patients { get; set; } = new List<Patient>();
     public ICollection<MriScan> ReviewedScans { get; set; } = new List<MriScan>();
