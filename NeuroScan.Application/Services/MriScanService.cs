@@ -241,6 +241,43 @@ public class MriScanService : IMriScanService
             await mriScanRepository.UpdateAsync(mriScan);
 
             _logger.LogInformation($"Scan {mriScan.Id} processed successfully");
+
+            // Step 5: Email results to patient (if they have an email address)
+            if (!string.IsNullOrWhiteSpace(patient.Email))
+            {
+                var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+                try
+                {
+                    var emailData = new ScanResultEmailData
+                    {
+                        ScanDate = mriScan.UploadDate,
+                        MedicalReport = medicalReport,
+                        CsfVolume = aiResult.Model1.CsfVolume,
+                        GmVolume = aiResult.Model1.GmVolume,
+                        WmVolume = aiResult.Model1.WmVolume,
+                        AsymmetryIndex = aiResult.Model1.AsymmetryIndex,
+                        CsfVolumeModel2 = aiResult.Model2.CsfVolume,
+                        GmVolumeModel2 = aiResult.Model2.GmVolume,
+                        WmVolumeModel2 = aiResult.Model2.WmVolume,
+                        AsymmetryIndexModel2 = aiResult.Model2.AsymmetryIndex,
+                        DiceScoreCsf = aiResult.Comparison.DiceScores.Csf,
+                        DiceScoreGm = aiResult.Comparison.DiceScores.Gm,
+                        DiceScoreWm = aiResult.Comparison.DiceScores.Wm,
+                        DisagreementPercentage = aiResult.Comparison.DisagreementPercentage,
+                        RecommendedModel = aiResult.Comparison.RecommendedModel,
+                        ModelConfidence = aiResult.Comparison.Confidence
+                    };
+                    await emailService.SendScanResultsEmailAsync(
+                        patient.Email,
+                        $"{patient.FirstName} {patient.LastName}",
+                        emailData);
+                    _logger.LogInformation($"Scan results email sent to patient {patient.Id}");
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogWarning(emailEx, $"Failed to send scan results email to patient {patient.Id}");
+                }
+            }
         }
         catch (Exception ex)
         {

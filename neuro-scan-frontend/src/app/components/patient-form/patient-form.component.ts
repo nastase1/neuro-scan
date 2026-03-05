@@ -23,7 +23,8 @@ export class PatientFormComponent implements OnInit {
     firstName: '',
     lastName: '',
     dateOfBirth: '',
-    medicalRecordNumber: ''
+    medicalRecordNumber: '',
+    email: ''
   });
 
   constructor(
@@ -50,7 +51,8 @@ export class PatientFormComponent implements OnInit {
           firstName: patient.firstName,
           lastName: patient.lastName,
           dateOfBirth: patient.dateOfBirth,
-          medicalRecordNumber: patient.medicalRecordNumber
+          medicalRecordNumber: patient.medicalRecordNumber,
+          email: patient.email ?? ''
         });
         this.isLoading.set(false);
       },
@@ -80,7 +82,8 @@ export class PatientFormComponent implements OnInit {
       const updateData: UpdatePatient = {
         firstName: currentPatient.firstName,
         lastName: currentPatient.lastName,
-        dateOfBirth: currentPatient.dateOfBirth
+        dateOfBirth: currentPatient.dateOfBirth,
+        email: currentPatient.email
       };
 
       this.patientService.updatePatient(this.patientId, updateData).subscribe({
@@ -128,6 +131,6 @@ export class PatientFormComponent implements OnInit {
   }
 
   getPatientField(field: keyof CreatePatient): string {
-    return this.patient()[field];
+    return this.patient()[field] ?? '';
   }
 }

@@ -47,6 +47,7 @@ public class PatientService : IPatientService
             LastName = dto.LastName,
             DateOfBirth = dto.DateOfBirth,
             MedicalRecordNumber = dto.MedicalRecordNumber,
+            Email = dto.Email,
             CreatedByUserId = userId,
             CreatedAt = DateTime.UtcNow
         };
@@ -73,6 +74,9 @@ public class PatientService : IPatientService
         if (dto.DateOfBirth.HasValue)
             patient.DateOfBirth = dto.DateOfBirth.Value;
 
+        if (dto.Email != null)
+            patient.Email = string.IsNullOrWhiteSpace(dto.Email) ? null : dto.Email;
+
         patient.UpdatedAt = DateTime.UtcNow;
 
         await _patientRepository.UpdateAsync(patient);
@@ -88,6 +92,7 @@ public class PatientService : IPatientService
             LastName = patient.LastName,
             DateOfBirth = patient.DateOfBirth,
             MedicalRecordNumber = patient.MedicalRecordNumber,
+            Email = patient.Email,
             Age = CalculateAge(patient.DateOfBirth)
         };
     }

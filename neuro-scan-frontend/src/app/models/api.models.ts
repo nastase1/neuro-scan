@@ -57,6 +57,7 @@ export interface Patient {
   lastName: string;
   dateOfBirth: string;
   medicalRecordNumber: string;
+  email?: string;
   age: number;
 }
 
@@ -65,12 +66,14 @@ export interface CreatePatient {
   lastName: string;
   dateOfBirth: string;
   medicalRecordNumber: string;
+  email?: string;
 }
 
 export interface UpdatePatient {
   firstName?: string;
   lastName?: string;
   dateOfBirth?: string;
+  email?: string;
 }
 
 export interface MriScanUpload {
