@@ -2,14 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Glassmorphism Styles */
+/* Custom Card Styles */
 @layer utilities {
   .glass-card {
-    @apply bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl;
+    @apply bg-slate-800 border border-slate-700 rounded-2xl;
   }
   
   .glass-card-hover {
-    @apply transition-all duration-300 hover:bg-white/15 hover:shadow-2xl hover:shadow-cyan-500/20;
+    @apply transition-all duration-300 hover:bg-slate-700 hover:shadow-2xl hover:shadow-black/40;
   }
   
   .glow-text {

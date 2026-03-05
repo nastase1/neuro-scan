@@ -31,6 +31,44 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // Patient selection - using signals for zoneless change detection
   selectedPatientId = signal<string | null>(null);
   availablePatients = signal<Patient[]>([]);
+  patientSearchQuery = signal('');
+  isPatientDropdownOpen = signal(false);
+
+  get filteredPatients(): Patient[] {
+    const q = this.patientSearchQuery().toLowerCase();
+    return this.availablePatients().filter(p =>
+      !q ||
+      p.firstName.toLowerCase().includes(q) ||
+      p.lastName.toLowerCase().includes(q) ||
+      p.medicalRecordNumber.toLowerCase().includes(q)
+    );
+  }
+
+  get selectedPatientLabel(): string {
+    const p = this.availablePatients().find(p => p.id === this.selectedPatientId());
+    return p ? `${p.firstName} ${p.lastName} — MRN: ${p.medicalRecordNumber}` : 'Select a patient...';
+  }
+
+  selectPatient(patientId: string): void {
+    this.selectedPatientId.set(patientId);
+    this.isPatientDropdownOpen.set(false);
+    this.patientSearchQuery.set('');
+  }
+
+  togglePatientDropdown(): void {
+    this.isPatientDropdownOpen.set(!this.isPatientDropdownOpen());
+    if (this.isPatientDropdownOpen()) {
+      setTimeout(() => {
+        const input = document.getElementById('patientSearchInput');
+        if (input) input.focus();
+      }, 50);
+    }
+  }
+
+  closePatientDropdown(): void {
+    this.isPatientDropdownOpen.set(false);
+    this.patientSearchQuery.set('');
+  }
   showPatientSelector = false;
   
   // Analysis results - using signals for zoneless change detection

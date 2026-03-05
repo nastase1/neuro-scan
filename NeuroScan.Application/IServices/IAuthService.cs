@@ -45,6 +45,7 @@ public class UserDTO
     public UserRole Role { get; set; }
     public string? InviteCode { get; set; }
     public Guid? AssignedDoctorId { get; set; }
+    public string? AssignedDoctorName { get; set; }
 }
 
 public class ForgotPasswordRequestDTO

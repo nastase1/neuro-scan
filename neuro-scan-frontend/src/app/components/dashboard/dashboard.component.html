@@ -37,19 +37,99 @@
             Your Patients Only
           </span>
         </div>
-        <select
-          [value]="selectedPatientId()"
-          (change)="onPatientChange($event)"
-          class="w-full px-4 py-3 bg-slate-800/50 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
-        >
-          <option
-            *ngFor="let patient of availablePatients()"
-            [value]="patient.id"
+        <div class="relative" (keydown.escape)="closePatientDropdown()">
+          <!-- Trigger Button -->
+          <button
+            type="button"
+            (click)="togglePatientDropdown()"
+            class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-left flex items-center justify-between hover:border-cyan-500/40 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
           >
-            {{ patient.firstName }} {{ patient.lastName }} - MRN:
-            {{ patient.medicalRecordNumber }}
-          </option>
-        </select>
+            <span
+              [class.text-white]="selectedPatientId()"
+              [class.text-gray-400]="!selectedPatientId()"
+            >
+              {{ selectedPatientLabel }}
+            </span>
+            <svg
+              class="w-5 h-5 text-gray-400 transition-transform duration-200"
+              [class.rotate-180]="isPatientDropdownOpen()"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 9l-7 7-7-7"
+              ></path>
+            </svg>
+          </button>
+
+          <!-- Dropdown Panel -->
+          <div
+            *ngIf="isPatientDropdownOpen()"
+            class="absolute z-50 w-full mt-1 glass-card rounded-xl shadow-2xl overflow-hidden animate-slide-up"
+          >
+            <!-- Search Input -->
+            <div class="p-2 border-b border-slate-700">
+              <div class="relative">
+                <svg
+                  class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  ></path>
+                </svg>
+                <input
+                  id="patientSearchInput"
+                  type="text"
+                  [ngModel]="patientSearchQuery()"
+                  (ngModelChange)="patientSearchQuery.set($event)"
+                  placeholder="Search by name or MRN..."
+                  class="w-full pl-9 pr-4 py-2 bg-slate-700/40 text-white text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
+                />
+              </div>
+            </div>
+
+            <!-- Options List -->
+            <div class="max-h-56 overflow-y-auto">
+              <button
+                *ngFor="let patient of filteredPatients"
+                type="button"
+                (click)="selectPatient(patient.id)"
+                class="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-slate-700/70 transition-colors"
+                [class.bg-cyan-500/10]="patient.id === selectedPatientId()"
+              >
+                <span class="text-white text-sm font-medium"
+                  >{{ patient.firstName }} {{ patient.lastName }}</span
+                >
+                <span class="text-gray-400 text-xs ml-2 flex-shrink-0"
+                  >MRN: {{ patient.medicalRecordNumber }}</span
+                >
+              </button>
+              <div
+                *ngIf="filteredPatients.length === 0"
+                class="px-4 py-6 text-center text-gray-500 text-sm"
+              >
+                No patients match "{{ patientSearchQuery() }}"
+              </div>
+            </div>
+          </div>
+
+          <!-- Click-outside overlay -->
+          <div
+            *ngIf="isPatientDropdownOpen()"
+            class="fixed inset-0 z-40"
+            (click)="closePatientDropdown()"
+          ></div>
+        </div>
       </div>
     </section>
 
@@ -161,7 +241,7 @@
         class="glass-card p-12 text-center border-2 border-dashed transition-all duration-300"
         [class.border-cyan-500]="isDragging()"
         [class.glow-border]="isDragging()"
-        [class.border-white/20]="!isDragging()"
+        [class.border-slate-600]="!isDragging()"
         (dragover)="onDragOver($event)"
         (dragleave)="onDragLeave($event)"
         (drop)="onDrop($event)"
@@ -392,7 +472,7 @@
         </div>
 
         <!-- Dice Score Details -->
-        <div class="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/10">
+        <div class="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-700">
           <div class="text-center">
             <div class="text-sm text-gray-400 mb-2">CSF Agreement</div>
             <div class="text-xl font-bold text-cyan-400">
@@ -420,7 +500,7 @@
         <div
           class="glass-card p-6 border-2"
           [class.border-cyan-500/50]="recommendedModel() === 'unet'"
-          [class.border-white/10]="recommendedModel() !== 'unet'"
+          [class.border-slate-700]="recommendedModel() !== 'unet'"
         >
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center space-x-3">
@@ -561,7 +641,7 @@
         <div
           class="glass-card p-6 border-2"
           [class.border-emerald-500/50]="recommendedModel() === 'segresnet'"
-          [class.border-white/10]="recommendedModel() !== 'segresnet'"
+          [class.border-slate-700]="recommendedModel() !== 'segresnet'"
         >
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center space-x-3">
@@ -752,7 +832,7 @@
         </div>
 
         <!-- Report Content -->
-        <div class="bg-slate-800/50 rounded-xl p-6 border border-white/10">
+        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
           <pre
             class="font-mono text-sm text-gray-300 whitespace-pre-wrap leading-relaxed"
             >{{ medicalReport() }}</pre
@@ -761,7 +841,7 @@
 
         <!-- Report Footer -->
         <div
-          class="mt-6 pt-6 border-t border-white/10 flex items-center justify-between"
+          class="mt-6 pt-6 border-t border-slate-700 flex items-center justify-between"
         >
           <div class="flex items-center space-x-2 text-sm text-gray-400">
             <svg

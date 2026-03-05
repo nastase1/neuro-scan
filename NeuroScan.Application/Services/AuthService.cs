@@ -86,13 +86,19 @@ public class AuthService : IAuthService
         try { await _emailService.SendWelcomeEmailAsync(user.Email, user.FirstName); } catch { }
 
         var token = _jwtTokenService.GenerateToken(user);
+        var dto = MapToUserDTO(user);
+        if (user.AssignedDoctorId.HasValue)
+        {
+            var doctor = await _userRepository.GetByIdAsync(user.AssignedDoctorId.Value);
+            if (doctor != null) dto.AssignedDoctorName = $"{doctor.FirstName} {doctor.LastName}";
+        }
 
         return new AuthResponseDTO
         {
             Success = true,
             Token = token,
             Message = "Registration successful",
-            User = MapToUserDTO(user)
+            User = dto
         };
     }
 
@@ -109,13 +115,19 @@ public class AuthService : IAuthService
         }
 
         var token = _jwtTokenService.GenerateToken(user);
+        var dto = MapToUserDTO(user);
+        if (user.AssignedDoctorId.HasValue)
+        {
+            var doctor = await _userRepository.GetByIdAsync(user.AssignedDoctorId.Value);
+            if (doctor != null) dto.AssignedDoctorName = $"{doctor.FirstName} {doctor.LastName}";
+        }
 
         return new AuthResponseDTO
         {
             Success = true,
             Token = token,
             Message = "Login successful",
-            User = MapToUserDTO(user)
+            User = dto
         };
     }
 

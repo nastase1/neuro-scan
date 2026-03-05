@@ -15,10 +15,10 @@
         <div class="hidden md:flex items-baseline space-x-4">
           <a
             routerLink="/dashboard"
-            routerLinkActive="bg-white/20 text-cyan-400"
+            routerLinkActive="bg-slate-600 text-cyan-400"
             [routerLinkActiveOptions]="{ exact: false }"
             (click)="closeMenus()"
-            class="px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-white/10 hover:text-cyan-400 transition-all duration-300"
+            class="px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
           >
             <svg
               class="inline w-5 h-5 mr-2"
@@ -38,10 +38,10 @@
           <a
             *ngIf="isDoctor()"
             routerLink="/patients"
-            routerLinkActive="bg-white/20 text-cyan-400"
+            routerLinkActive="bg-slate-600 text-cyan-400"
             [routerLinkActiveOptions]="{ exact: false }"
             (click)="closeMenus()"
-            class="px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-white/10 hover:text-cyan-400 transition-all duration-300"
+            class="px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
           >
             <svg
               class="inline w-5 h-5 mr-2"
@@ -64,7 +64,7 @@
         <div *ngIf="isDoctor()" class="relative hidden md:block">
           <button
             (click)="toggleInvite()"
-            class="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium text-purple-300 hover:bg-white/10 border border-purple-500/30 hover:border-purple-400/60 transition-all duration-300"
+            class="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium text-purple-300 hover:bg-slate-700/70 border border-purple-500/30 hover:border-purple-400/60 transition-all duration-300"
           >
             <svg
               class="w-4 h-4"
@@ -87,7 +87,7 @@
             *ngIf="isInviteOpen"
             class="absolute right-0 mt-2 w-72 glass-card rounded-xl shadow-lg overflow-hidden animate-slide-up"
           >
-            <div class="px-4 py-3 border-b border-white/10">
+            <div class="px-4 py-3 border-b border-slate-700">
               <p class="text-sm font-semibold text-white">Your Invite Code</p>
               <p class="text-xs text-gray-400 mt-0.5">
                 Share with patients so they can link their account to you on
@@ -97,7 +97,7 @@
             <div class="px-4 py-4">
               <div class="flex items-center space-x-2">
                 <div
-                  class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2.5"
+                  class="flex-1 bg-slate-700/40 border border-slate-700 rounded-lg px-3 py-2.5"
                 >
                   <span
                     *ngIf="inviteCode()"
@@ -157,7 +157,7 @@
         <div class="relative">
           <button
             (click)="toggleProfile()"
-            class="flex items-center space-x-3 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all duration-300 border border-white/10 hover:border-cyan-400/50"
+            class="flex items-center space-x-3 px-4 py-2 rounded-lg bg-slate-700/40 hover:bg-slate-700/70 transition-all duration-300 border border-slate-700 hover:border-cyan-400/50"
           >
             <div
               class="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center text-white font-semibold text-sm"
@@ -189,20 +189,191 @@
           <!-- Profile Dropdown -->
           <div
             *ngIf="isProfileOpen"
-            class="absolute right-0 mt-2 w-56 glass-card rounded-xl shadow-lg overflow-hidden animate-slide-up"
+            class="absolute right-0 mt-2 w-80 glass-card rounded-xl shadow-2xl overflow-hidden animate-slide-up"
           >
-            <div class="px-4 py-3 border-b border-white/10">
-              <p class="text-sm text-gray-400">Signed in as</p>
-              <p class="text-sm font-medium text-white truncate">
-                {{ currentUser?.email }}
-              </p>
+            <!-- Avatar + name header -->
+            <div
+              class="px-5 py-4 bg-gradient-to-br from-cyan-900/40 to-slate-800 border-b border-slate-700"
+            >
+              <div class="flex items-center space-x-3">
+                <div
+                  class="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+                >
+                  {{ getUserInitials() }}
+                </div>
+                <div class="min-w-0">
+                  <p class="text-base font-semibold text-white truncate">
+                    {{ currentUser?.firstName }} {{ currentUser?.lastName }}
+                  </p>
+                  <span
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-0.5"
+                    [class]="
+                      currentUser?.role === 1
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                        : 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
+                    "
+                  >
+                    {{ getUserRole() }}
+                  </span>
+                </div>
+              </div>
             </div>
+
+            <!-- User details -->
+            <div class="px-5 py-3 space-y-2.5 border-b border-slate-700">
+              <!-- Email -->
+              <div class="flex items-start space-x-2.5">
+                <svg
+                  class="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+                <div class="min-w-0">
+                  <p class="text-xs text-gray-500 uppercase tracking-wide">
+                    Email
+                  </p>
+                  <p class="text-sm text-gray-200 truncate">
+                    {{ currentUser?.email }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- First Name -->
+              <div class="flex items-start space-x-2.5">
+                <svg
+                  class="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                <div class="min-w-0">
+                  <p class="text-xs text-gray-500 uppercase tracking-wide">
+                    First Name
+                  </p>
+                  <p class="text-sm text-gray-200">
+                    {{ currentUser?.firstName }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Last Name -->
+              <div class="flex items-start space-x-2.5">
+                <svg
+                  class="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                <div class="min-w-0">
+                  <p class="text-xs text-gray-500 uppercase tracking-wide">
+                    Last Name
+                  </p>
+                  <p class="text-sm text-gray-200">
+                    {{ currentUser?.lastName }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Assigned Doctor (standard users) -->
+              <div
+                *ngIf="currentUser?.role === 0"
+                class="flex items-start space-x-2.5"
+              >
+                <svg
+                  class="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                <div class="min-w-0">
+                  <p class="text-xs text-gray-500 uppercase tracking-wide">
+                    Assigned Doctor
+                  </p>
+                  <p
+                    *ngIf="currentUser?.assignedDoctorId"
+                    class="text-sm text-gray-200"
+                  >
+                    {{
+                      currentUser?.assignedDoctorName ||
+                        currentUser?.assignedDoctorId
+                    }}
+                  </p>
+                  <p
+                    *ngIf="!currentUser?.assignedDoctorId"
+                    class="text-sm text-gray-500 italic"
+                  >
+                    None assigned
+                  </p>
+                </div>
+              </div>
+
+              <!-- Invite Code (doctors) -->
+              <div
+                *ngIf="currentUser?.role === 1 && inviteCode()"
+                class="flex items-start space-x-2.5"
+              >
+                <svg
+                  class="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                  />
+                </svg>
+                <div class="min-w-0">
+                  <p class="text-xs text-gray-500 uppercase tracking-wide">
+                    Invite Code
+                  </p>
+                  <p
+                    class="text-sm text-purple-300 font-mono font-bold tracking-widest"
+                  >
+                    {{ inviteCode() }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sign out -->
             <button
               (click)="logout()"
-              class="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-white/10 transition-all duration-300 flex items-center space-x-2"
+              class="w-full text-left px-5 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-all duration-200 flex items-center space-x-2.5"
             >
               <svg
-                class="w-5 h-5"
+                class="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -212,7 +383,7 @@
                   stroke-linejoin="round"
                   stroke-width="2"
                   d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                ></path>
+                />
               </svg>
               <span>Sign out</span>
             </button>
@@ -224,7 +395,7 @@
       <div class="md:hidden">
         <button
           (click)="toggleMenu()"
-          class="inline-flex items-center justify-center p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-300"
+          class="inline-flex items-center justify-center p-2 rounded-lg text-gray-400 hover:text-white hover:bg-slate-700/70 transition-all duration-300"
         >
           <svg
             class="h-6 w-6"
@@ -261,9 +432,11 @@
 
   <!-- Mobile menu -->
   <div class="md:hidden" [class.hidden]="!isMenuOpen">
-    <div class="px-2 pt-2 pb-3 space-y-1 border-t border-white/10 mt-2">
+    <div class="px-2 pt-2 pb-3 space-y-1 border-t border-slate-700 mt-2">
       <!-- User Info -->
-      <div class="px-3 py-3 mb-3 rounded-lg bg-white/5 border border-white/10">
+      <div
+        class="px-3 py-3 mb-3 rounded-lg bg-slate-700/40 border border-slate-700"
+      >
         <div class="flex items-center space-x-3">
           <div
             class="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center text-white font-semibold"
@@ -283,9 +456,9 @@
       <!-- Navigation Links -->
       <a
         routerLink="/dashboard"
-        routerLinkActive="bg-white/20 text-cyan-400"
+        routerLinkActive="bg-slate-600 text-cyan-400"
         (click)="closeMenus()"
-        class="block px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:bg-white/10 hover:text-cyan-400 transition-all duration-300"
+        class="block px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
       >
         <svg
           class="inline w-5 h-5 mr-3"
@@ -305,9 +478,9 @@
       <a
         *ngIf="isDoctor()"
         routerLink="/patients"
-        routerLinkActive="bg-white/20 text-cyan-400"
+        routerLinkActive="bg-slate-600 text-cyan-400"
         (click)="closeMenus()"
-        class="block px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:bg-white/10 hover:text-cyan-400 transition-all duration-300"
+        class="block px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
       >
         <svg
           class="inline w-5 h-5 mr-3"
@@ -328,7 +501,7 @@
       <!-- Logout -->
       <button
         (click)="logout()"
-        class="w-full text-left px-3 py-2 rounded-lg text-base font-medium text-red-400 hover:bg-white/10 transition-all duration-300 flex items-center"
+        class="w-full text-left px-3 py-2 rounded-lg text-base font-medium text-red-400 hover:bg-slate-700/70 transition-all duration-300 flex items-center"
       >
         <svg
           class="w-5 h-5 mr-3"

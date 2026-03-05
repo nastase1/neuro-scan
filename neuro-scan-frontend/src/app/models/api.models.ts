@@ -43,6 +43,7 @@ export interface User {
   role: UserRole;
   inviteCode?: string;
   assignedDoctorId?: string;
+  assignedDoctorName?: string;
 }
 
 export enum UserRole {
