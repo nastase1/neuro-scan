@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NeuroScan.Application.IServices;
 
@@ -70,5 +72,26 @@ public class AuthController : ControllerBase
         }
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Get the authenticated doctor's invite code
+    /// </summary>
+    [HttpGet("my-invite-code")]
+    [Authorize]
+    public async Task<ActionResult<object>> GetMyInviteCode()
+    {
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdStr, out var userId))
+            return Unauthorized();
+
+        var roleStr = User.FindFirstValue(ClaimTypes.Role);
+        if (roleStr != "Doctor")
+            return Forbid();
+
+        var code = await _authService.GetMyInviteCodeAsync(userId);
+        if (code == null) return NotFound();
+
+        return Ok(new { inviteCode = code });
     }
 }

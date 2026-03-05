@@ -28,6 +28,20 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
     }
 
+    public async Task<User?> GetByInviteCodeAsync(string inviteCode)
+    {
+        return await _context.Users
+            .Where(u => u.DeletedAt == null && u.Role == UserRole.Doctor)
+            .FirstOrDefaultAsync(u => u.InviteCode == inviteCode);
+    }
+
+    public async Task<IEnumerable<User>> GetAssignedUsersAsync(Guid doctorId)
+    {
+        return await _context.Users
+            .Where(u => u.DeletedAt == null && u.AssignedDoctorId == doctorId)
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<User>> GetAllAsync()
     {
         return await _context.Users

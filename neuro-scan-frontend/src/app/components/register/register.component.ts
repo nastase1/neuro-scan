@@ -18,7 +18,8 @@ export class RegisterComponent {
     lastName: '',
     email: '',
     password: '',
-    role: UserRole.StandardUser
+    role: UserRole.StandardUser,
+    inviteCode: ''
   };
 
   confirmPassword = '';
@@ -26,6 +27,7 @@ export class RegisterComponent {
   errorMessage = '';
   showPassword = false;
   showConfirmPassword = false;
+  readonly UserRole = UserRole;
 
   constructor(
     private authService: AuthService,

@@ -55,6 +55,10 @@ export class AuthService {
     return this.http.post<GenericResponse>(`${this.apiUrl}/auth/reset-password`, request);
   }
 
+  getMyInviteCode(): Observable<{ inviteCode: string }> {
+    return this.http.get<{ inviteCode: string }>(`${this.apiUrl}/auth/my-invite-code`);
+  }
+
   getToken(): string | null {
     return localStorage.getItem('token');
   }

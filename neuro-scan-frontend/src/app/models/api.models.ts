@@ -11,6 +11,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   role?: UserRole;
+  inviteCode?: string;
 }
 
 export interface LoginRequest {
@@ -40,6 +41,8 @@ export interface User {
   lastName: string;
   email: string;
   role: UserRole;
+  inviteCode?: string;
+  assignedDoctorId?: string;
 }
 
 export enum UserRole {

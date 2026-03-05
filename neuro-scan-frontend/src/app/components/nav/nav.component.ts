@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -15,6 +15,10 @@ export class NavComponent implements OnInit {
   currentUser: User | null = null;
   isMenuOpen = false;
   isProfileOpen = false;
+  isInviteOpen = false;
+
+  inviteCode = signal<string | null>(null);
+  inviteCodeCopied = signal(false);
 
   constructor(
     private authService: AuthService,
@@ -24,6 +28,33 @@ export class NavComponent implements OnInit {
   ngOnInit(): void {
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
+      if (user && this.authService.isDoctor()) {
+        this.loadInviteCode();
+      }
+    });
+  }
+
+  loadInviteCode(): void {
+    this.authService.getMyInviteCode().subscribe({
+      next: (res) => this.inviteCode.set(res.inviteCode),
+      error: () => {}
+    });
+  }
+
+  toggleInvite(): void {
+    this.isInviteOpen = !this.isInviteOpen;
+    if (this.isInviteOpen) {
+      this.isProfileOpen = false;
+      this.isMenuOpen = false;
+    }
+  }
+
+  copyInviteCode(): void {
+    const code = this.inviteCode();
+    if (!code) return;
+    navigator.clipboard.writeText(code).then(() => {
+      this.inviteCodeCopied.set(true);
+      setTimeout(() => this.inviteCodeCopied.set(false), 2000);
     });
   }
 
@@ -31,6 +62,7 @@ export class NavComponent implements OnInit {
     this.isMenuOpen = !this.isMenuOpen;
     if (this.isMenuOpen) {
       this.isProfileOpen = false;
+      this.isInviteOpen = false;
     }
   }
 
@@ -38,12 +70,14 @@ export class NavComponent implements OnInit {
     this.isProfileOpen = !this.isProfileOpen;
     if (this.isProfileOpen) {
       this.isMenuOpen = false;
+      this.isInviteOpen = false;
     }
   }
 
   closeMenus(): void {
     this.isMenuOpen = false;
     this.isProfileOpen = false;
+    this.isInviteOpen = false;
   }
 
   getUserInitials(): string {

@@ -26,6 +26,14 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
             entity.HasIndex(e => e.Email).IsUnique();
             entity.HasIndex(e => e.DeletedAt);
+            entity.HasIndex(e => e.InviteCode).IsUnique().HasFilter("[InviteCode] IS NOT NULL");
+
+            // Self-referencing: StandardUser → AssignedDoctor
+            entity.HasOne(e => e.AssignedDoctor)
+                .WithMany()
+                .HasForeignKey(e => e.AssignedDoctorId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Patient configuration

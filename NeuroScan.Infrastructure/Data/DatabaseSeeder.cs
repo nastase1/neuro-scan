@@ -8,6 +8,21 @@ public static class DatabaseSeeder
 {
     public static async Task SeedAsync(ApplicationDbContext context)
     {
+        // Ensure existing doctors have invite codes (handles post-migration updates)
+        var existingDoctors = await context.Users
+            .Where(u => u.Role == UserRole.Doctor && u.InviteCode == null)
+            .ToListAsync();
+        foreach (var d in existingDoctors)
+        {
+            // Generate a unique code per doctor, retrying if there's a collision
+            string code;
+            do { code = GenerateInviteCode(); }
+            while (await context.Users.AnyAsync(u => u.InviteCode == code));
+            d.InviteCode = code;
+        }
+        if (existingDoctors.Count > 0)
+            await context.SaveChangesAsync();
+
         if (await context.Users.AnyAsync())
         {
             return; // Database already seeded
@@ -22,6 +37,7 @@ public static class DatabaseSeeder
             Email = "doctor@neuroscan.com",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("doctor123"),
             Role = UserRole.Doctor,
+            InviteCode = GenerateInviteCode(),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -69,5 +85,13 @@ public static class DatabaseSeeder
         Console.WriteLine("Database seeded successfully!");
         Console.WriteLine($"Doctor login: doctor@neuroscan.com / doctor123");
         Console.WriteLine($"User login: user@neuroscan.com / user123");
+    }
+
+    private static string GenerateInviteCode()
+    {
+        var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        var random = new Random();
+        var code = new string(Enumerable.Range(0, 8).Select(_ => chars[random.Next(chars.Length)]).ToArray());
+        return $"DR-{code}";
     }
 }

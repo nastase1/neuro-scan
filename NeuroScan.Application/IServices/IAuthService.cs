@@ -9,6 +9,7 @@ public interface IAuthService
     Task<User?> GetCurrentUserAsync(Guid userId);
     Task<GenericResponseDTO> ForgotPasswordAsync(ForgotPasswordRequestDTO request);
     Task<GenericResponseDTO> ResetPasswordAsync(ResetPasswordRequestDTO request);
+    Task<string?> GetMyInviteCodeAsync(Guid doctorId);
 }
 
 public class AuthResponseDTO
@@ -26,6 +27,7 @@ public class RegisterRequestDTO
     public required string Email { get; set; }
     public required string Password { get; set; }
     public UserRole Role { get; set; } = UserRole.StandardUser;
+    public string? InviteCode { get; set; }
 }
 
 public class LoginRequestDTO
@@ -41,6 +43,8 @@ public class UserDTO
     public required string LastName { get; set; }
     public required string Email { get; set; }
     public UserRole Role { get; set; }
+    public string? InviteCode { get; set; }
+    public Guid? AssignedDoctorId { get; set; }
 }
 
 public class ForgotPasswordRequestDTO

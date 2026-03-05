@@ -60,6 +60,99 @@
           </a>
         </div>
 
+        <!-- Invite Code Button (Doctors only) -->
+        <div *ngIf="isDoctor()" class="relative hidden md:block">
+          <button
+            (click)="toggleInvite()"
+            class="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium text-purple-300 hover:bg-white/10 border border-purple-500/30 hover:border-purple-400/60 transition-all duration-300"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+              ></path>
+            </svg>
+            <span>Invite Code</span>
+          </button>
+
+          <!-- Invite Code Dropdown -->
+          <div
+            *ngIf="isInviteOpen"
+            class="absolute right-0 mt-2 w-72 glass-card rounded-xl shadow-lg overflow-hidden animate-slide-up"
+          >
+            <div class="px-4 py-3 border-b border-white/10">
+              <p class="text-sm font-semibold text-white">Your Invite Code</p>
+              <p class="text-xs text-gray-400 mt-0.5">
+                Share with patients so they can link their account to you on
+                registration
+              </p>
+            </div>
+            <div class="px-4 py-4">
+              <div class="flex items-center space-x-2">
+                <div
+                  class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2.5"
+                >
+                  <span
+                    *ngIf="inviteCode()"
+                    class="text-purple-300 font-mono tracking-widest font-bold text-base"
+                    >{{ inviteCode() }}</span
+                  >
+                  <span *ngIf="!inviteCode()" class="text-gray-500 text-sm"
+                    >Loading...</span
+                  >
+                </div>
+                <button
+                  *ngIf="inviteCode()"
+                  (click)="copyInviteCode()"
+                  class="flex-shrink-0 px-3 py-2.5 rounded-lg border transition-all duration-200"
+                  [class]="
+                    inviteCodeCopied()
+                      ? 'border-green-500/40 bg-green-500/10 text-green-400'
+                      : 'border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20'
+                  "
+                  [title]="inviteCodeCopied() ? 'Copied!' : 'Copy to clipboard'"
+                >
+                  <svg
+                    *ngIf="!inviteCodeCopied()"
+                    class="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    ></path>
+                  </svg>
+                  <svg
+                    *ngIf="inviteCodeCopied()"
+                    class="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 13l4 4L19 7"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- User Profile -->
         <div class="relative">
           <button
