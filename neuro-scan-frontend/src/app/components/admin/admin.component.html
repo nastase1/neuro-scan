@@ -1,0 +1,802 @@
+<div class="admin-shell">
+  <!-- Main -->
+  <main class="content">
+    <!-- Toast -->
+    @if (successMsg()) {
+      <div class="toast toast-success">{{ successMsg() }}</div>
+    }
+    @if (errorMsg()) {
+      <div class="toast toast-error">{{ errorMsg() }}</div>
+    }
+
+    <!-- ── OVERVIEW ──────────────────────────────────────── -->
+    @if (activeTab() === "overview") {
+      <div class="page-header">
+        <h1>Overview</h1>
+        <p>System-wide statistics</p>
+      </div>
+
+      @if (stats(); as s) {
+        <section class="overview-hero">
+          <div class="hero-main">
+            <p class="hero-kicker">Operations Command</p>
+            <h2>NeuroScan Mission Control</h2>
+            <p>
+              Live system pulse across users, scans, and doctor reviews. Keep
+              queue pressure low and review throughput high.
+            </p>
+            <div class="hero-chip-row">
+              <span class="hero-chip">{{ pct(s.reviewedScans, s.totalScans) }}% Reviewed</span>
+              <span class="hero-chip">{{ s.pendingReviews }} Pending</span>
+              <span class="hero-chip">{{ pct(s.failedScans, s.totalScans) }}% Failure Rate</span>
+            </div>
+          </div>
+          <div class="hero-quick-stats">
+            <div class="quick-stat">
+              <p class="quick-stat-label">Coverage</p>
+              <p class="quick-stat-value">{{ pct(s.analyzedScans + s.reviewedScans, s.totalScans) }}%</p>
+            </div>
+            <div class="quick-stat">
+              <p class="quick-stat-label">Review Throughput</p>
+              <p class="quick-stat-value">{{ s.reviewedScans }}</p>
+            </div>
+            <div class="quick-stat">
+              <p class="quick-stat-label">Active Doctors</p>
+              <p class="quick-stat-value">{{ s.totalDoctors }}</p>
+            </div>
+          </div>
+        </section>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon icon-blue">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+              </svg>
+            </div>
+            <div>
+              <div class="stat-value">{{ s.totalUsers }}</div>
+              <div class="stat-label">Total Users</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-purple">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"
+                />
+              </svg>
+            </div>
+            <div>
+              <div class="stat-value">{{ s.totalDoctors }}</div>
+              <div class="stat-label">Doctors</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-teal">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 00-3-3.87" />
+                <path d="M16 3.13a4 4 0 010 7.75" />
+              </svg>
+            </div>
+            <div>
+              <div class="stat-value">{{ s.totalPatients }}</div>
+              <div class="stat-label">Patients</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-orange">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+                />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+            </div>
+            <div>
+              <div class="stat-value">{{ s.totalScans }}</div>
+              <div class="stat-label">Total Scans</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-yellow">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+            <div>
+              <div class="stat-value">{{ s.pendingReviews }}</div>
+              <div class="stat-label">Pending Reviews</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-blue">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+              </svg>
+            </div>
+            <div>
+              <div class="stat-value">{{ s.analyzedScans }}</div>
+              <div class="stat-label">Analyzed</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-green">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <div>
+              <div class="stat-value">{{ s.reviewedScans }}</div>
+              <div class="stat-label">Reviewed</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-red">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="9" y2="15" />
+                <line x1="9" y1="9" x2="15" y2="15" />
+              </svg>
+            </div>
+            <div>
+              <div class="stat-value">{{ s.failedScans }}</div>
+              <div class="stat-label">Failed Scans</div>
+            </div>
+          </div>
+        </div>
+
+        <section class="overview-deep-grid">
+          <article class="insight-card">
+            <div class="insight-head">
+              <h3>System Health</h3>
+              <span class="insight-subtitle">Real-time quality indicators</span>
+            </div>
+
+            <div class="meter-group">
+              <div class="meter-row">
+                <div class="meter-label-wrap">
+                  <span>Reviewed Scans</span>
+                  <strong>{{ pct(s.reviewedScans, s.totalScans) }}%</strong>
+                </div>
+                <div class="meter-track">
+                  <span class="meter-fill meter-green" [style.width.%]="pct(s.reviewedScans, s.totalScans)"></span>
+                </div>
+              </div>
+
+              <div class="meter-row">
+                <div class="meter-label-wrap">
+                  <span>Pending Queue</span>
+                  <strong>{{ pct(s.pendingReviews, s.totalScans) }}%</strong>
+                </div>
+                <div class="meter-track">
+                  <span class="meter-fill meter-yellow" [style.width.%]="pct(s.pendingReviews, s.totalScans)"></span>
+                </div>
+              </div>
+
+              <div class="meter-row">
+                <div class="meter-label-wrap">
+                  <span>Failed Analyses</span>
+                  <strong>{{ pct(s.failedScans, s.totalScans) }}%</strong>
+                </div>
+                <div class="meter-track">
+                  <span class="meter-fill meter-red" [style.width.%]="pct(s.failedScans, s.totalScans)"></span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="insight-card">
+            <div class="insight-head">
+              <h3>Action Radar</h3>
+              <span class="insight-subtitle">Priority recommendations</span>
+            </div>
+
+            <div class="radar-list">
+              <div class="radar-item radar-warning">
+                <p>Review Queue Pressure</p>
+                <strong>{{ s.pendingReviews }} scans waiting doctor review</strong>
+              </div>
+              <div class="radar-item radar-info">
+                <p>Scan Processing</p>
+                <strong>{{ s.analyzedScans }} analyzed, ready for final decisions</strong>
+              </div>
+              <div class="radar-item radar-success">
+                <p>Clinical Throughput</p>
+                <strong>{{ s.reviewedScans }} scans already validated by doctors</strong>
+              </div>
+            </div>
+          </article>
+        </section>
+      } @else {
+        <div class="loading-block">Loading statistics…</div>
+      }
+    }
+
+    <!-- ── USERS ─────────────────────────────────────────── -->
+    @if (activeTab() === "users") {
+      <div class="page-header">
+        <h1>Users</h1>
+        <p>Manage all registered accounts</p>
+      </div>
+
+      <!-- Filters -->
+      <div class="toolbar">
+        <input
+          class="search-input"
+          type="text"
+          placeholder="Search name or email…"
+          [value]="userSearch()"
+          (input)="onUserSearch($any($event.target).value)"
+        />
+        <select
+          class="filter-select"
+          (change)="onUserRoleFilter($any($event.target).value)"
+        >
+          <option value="">All roles</option>
+          <option value="0">Users</option>
+          <option value="1">Doctors</option>
+          <option value="2">Admins</option>
+        </select>
+      </div>
+
+      @if (usersLoading()) {
+        <div class="loading-block">Loading users…</div>
+      } @else if (usersResult(); as r) {
+        <div class="table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Patients</th>
+                <th>Scans</th>
+                <th>Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (user of r.items; track user.id) {
+                <tr>
+                  <td class="name-cell">
+                    {{ user.firstName }} {{ user.lastName }}
+                  </td>
+                  <td class="email-cell">{{ user.email }}</td>
+                  <td>
+                    <span
+                      class="badge"
+                      [class]="
+                        user.role === UserRole.Admin
+                          ? 'badge-red'
+                          : user.role === UserRole.Doctor
+                            ? 'badge-blue'
+                            : 'badge-gray'
+                      "
+                      >{{ roleName(user.role) }}</span
+                    >
+                  </td>
+                  <td>{{ user.patientCount }}</td>
+                  <td>{{ user.scanCount }}</td>
+                  <td>{{ user.createdAt | date: "MMM d, y" }}</td>
+                  <td class="actions-cell">
+                    <button
+                      class="btn-icon btn-edit"
+                      title="Edit"
+                      (click)="openEditUser(user)"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
+                        />
+                        <path
+                          d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      class="btn-icon btn-key"
+                      title="Reset Password"
+                      (click)="openResetPassword(user.id)"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <rect
+                          x="3"
+                          y="11"
+                          width="18"
+                          height="11"
+                          rx="2"
+                          ry="2"
+                        />
+                        <path d="M7 11V7a5 5 0 0110 0v4" />
+                      </svg>
+                    </button>
+                    @if (user.role !== UserRole.Admin) {
+                      <button
+                        class="btn-icon btn-delete"
+                        title="Delete"
+                        (click)="confirmDeleteUser(user.id)"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <polyline points="3 6 5 6 21 6" />
+                          <path
+                            d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"
+                          />
+                          <path d="M10 11v6" />
+                          <path d="M14 11v6" />
+                          <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
+                        </svg>
+                      </button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        @if (r.totalPages > 1) {
+          <div class="pagination">
+            <button
+              class="pg-btn"
+              [disabled]="userPage() === 1"
+              (click)="setUserPage(userPage() - 1)"
+            >
+              ‹
+            </button>
+            @for (p of pages(r.totalPages); track p) {
+              <button
+                class="pg-btn"
+                [class.active]="p === userPage()"
+                (click)="setUserPage(p)"
+              >
+                {{ p }}
+              </button>
+            }
+            <button
+              class="pg-btn"
+              [disabled]="userPage() === r.totalPages"
+              (click)="setUserPage(userPage() + 1)"
+            >
+              ›
+            </button>
+            <span class="pg-info">{{ r.totalCount }} total</span>
+          </div>
+        }
+      }
+    }
+
+    <!-- ── DOCTORS ────────────────────────────────────────── -->
+    @if (activeTab() === "doctors") {
+      <div class="page-header">
+        <h1>Doctors</h1>
+        <p>View doctors and their assigned patients</p>
+      </div>
+
+      <div class="toolbar">
+        <input
+          class="search-input"
+          type="text"
+          placeholder="Search doctors…"
+          [value]="doctorSearch()"
+          (input)="doctorSearch.set($any($event.target).value)"
+        />
+      </div>
+
+      @if (doctorsLoading()) {
+        <div class="loading-block">Loading doctors…</div>
+      } @else {
+        <div class="doctor-list">
+          @for (doc of filteredDoctors(); track doc.id) {
+            <div class="doctor-card">
+              <div class="doctor-header" (click)="toggleDoctor(doc.id)">
+                <div class="doctor-info">
+                  <div class="doctor-avatar">
+                    {{ doc.firstName[0] }}{{ doc.lastName[0] }}
+                  </div>
+                  <div>
+                    <div class="doctor-name">
+                      Dr. {{ doc.firstName }} {{ doc.lastName }}
+                    </div>
+                    <div class="doctor-email">{{ doc.email }}</div>
+                  </div>
+                </div>
+                <div class="doctor-stats">
+                  <span class="ds-chip">{{ doc.patientCount }} patients</span>
+                  <span class="ds-chip">{{ doc.scanCount }} scans</span>
+                  <span class="ds-chip">{{ doc.reviewCount }} reviews</span>
+                  @if (doc.inviteCode) {
+                    <span class="ds-chip ds-code">{{ doc.inviteCode }}</span>
+                  }
+                  <svg
+                    class="expand-icon"
+                    [class.expanded]="expandedDoctorId() === doc.id"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </div>
+              </div>
+
+              @if (expandedDoctorId() === doc.id) {
+                <div class="patient-table-wrap">
+                  @if (doc.patients.length === 0) {
+                    <p class="no-data">No patients assigned yet.</p>
+                  } @else {
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th>Patient Name</th>
+                          <th>MRN</th>
+                          <th>Scans</th>
+                          <th>Created</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (p of doc.patients; track p.id) {
+                          <tr>
+                            <td>{{ p.fullName }}</td>
+                            <td class="mrn-cell">
+                              {{ p.medicalRecordNumber }}
+                            </td>
+                            <td>{{ p.scanCount }}</td>
+                            <td>{{ p.createdAt | date: "MMM d, y" }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          @if (filteredDoctors().length === 0 && !doctorsLoading()) {
+            <div class="empty-state">No doctors found.</div>
+          }
+        </div>
+      }
+    }
+
+    <!-- ── SCANS ──────────────────────────────────────────── -->
+    @if (activeTab() === "scans") {
+      <div class="page-header">
+        <h1>Scans</h1>
+        <p>All MRI scans in the system</p>
+      </div>
+
+      <div class="toolbar">
+        <input
+          class="search-input"
+          type="text"
+          placeholder="Search file, patient or MRN…"
+          [value]="scanSearch()"
+          (input)="onScanSearch($any($event.target).value)"
+        />
+        <select
+          class="filter-select"
+          (change)="onScanStatusFilter($any($event.target).value)"
+        >
+          <option value="">All statuses</option>
+          <option value="0">Uploaded</option>
+          <option value="1">Processing</option>
+          <option value="2">Analyzed</option>
+          <option value="3">Failed</option>
+          <option value="4">Reviewed</option>
+        </select>
+      </div>
+
+      @if (scansLoading()) {
+        <div class="loading-block">Loading scans…</div>
+      } @else if (scansResult(); as r) {
+        <div class="table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>File</th>
+                <th>Patient</th>
+                <th>MRN</th>
+                <th>Status</th>
+                <th>Risk</th>
+                <th>Reviewed By</th>
+                <th>Uploaded</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (scan of r.items; track scan.id) {
+                <tr>
+                  <td class="file-cell" [title]="scan.originalFileName">
+                    {{ scan.originalFileName | slice: 0 : 30
+                    }}{{ scan.originalFileName.length > 30 ? "…" : "" }}
+                  </td>
+                  <td>{{ scan.patientName ?? "—" }}</td>
+                  <td class="mrn-cell">{{ scan.patientMrn ?? "—" }}</td>
+                  <td>
+                    <span
+                      class="badge"
+                      [class]="scanStatusClass(scan.status)"
+                      >{{ scanStatusName(scan.status) }}</span
+                    >
+                  </td>
+                  <td>
+                    @if (scan.epilepsyRiskLevel) {
+                      <span
+                        class="badge"
+                        [class]="riskClass(scan.epilepsyRiskLevel)"
+                        >{{ scan.epilepsyRiskLevel }}</span
+                      >
+                    } @else {
+                      —
+                    }
+                  </td>
+                  <td>{{ scan.reviewedByDoctorName ?? "—" }}</td>
+                  <td>{{ scan.uploadDate | date: "MMM d, y" }}</td>
+                  <td class="actions-cell">
+                    <button
+                      class="btn-icon btn-delete"
+                      title="Delete"
+                      (click)="confirmDeleteScan(scan.id)"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                        <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (r.totalPages > 1) {
+          <div class="pagination">
+            <button
+              class="pg-btn"
+              [disabled]="scanPage() === 1"
+              (click)="setScanPage(scanPage() - 1)"
+            >
+              ‹
+            </button>
+            @for (p of pages(r.totalPages); track p) {
+              <button
+                class="pg-btn"
+                [class.active]="p === scanPage()"
+                (click)="setScanPage(p)"
+              >
+                {{ p }}
+              </button>
+            }
+            <button
+              class="pg-btn"
+              [disabled]="scanPage() === r.totalPages"
+              (click)="setScanPage(scanPage() + 1)"
+            >
+              ›
+            </button>
+            <span class="pg-info">{{ r.totalCount }} total</span>
+          </div>
+        }
+      }
+    }
+  </main>
+</div>
+
+<!-- ── EDIT USER MODAL ──────────────────────────── -->
+@if (editingUser()) {
+  <div class="modal-overlay" (click)="editingUser.set(null)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Edit User</h2>
+        <button class="modal-close" (click)="editingUser.set(null)">✕</button>
+      </div>
+      <div class="modal-body">
+        <label>First Name</label>
+        <input
+          type="text"
+          [value]="editForm().firstName"
+          (input)="updateEditField('firstName', $any($event.target).value)"
+        />
+        <label>Last Name</label>
+        <input
+          type="text"
+          [value]="editForm().lastName"
+          (input)="updateEditField('lastName', $any($event.target).value)"
+        />
+        <label>Email</label>
+        <input
+          type="email"
+          [value]="editForm().email"
+          (input)="updateEditField('email', $any($event.target).value)"
+        />
+        <label>Role</label>
+        <select
+          [value]="editForm().role"
+          (change)="updateEditField('role', +$any($event.target).value)"
+        >
+          <option value="0">User</option>
+          <option value="1">Doctor</option>
+          <option value="2">Admin</option>
+        </select>
+        @if (editError()) {
+          <p class="form-error">{{ editError() }}</p>
+        }
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="editingUser.set(null)">
+          Cancel
+        </button>
+        <button
+          class="btn-primary"
+          [disabled]="editSaving()"
+          (click)="saveEditUser()"
+        >
+          {{ editSaving() ? "Saving…" : "Save Changes" }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── RESET PASSWORD MODAL ───────────────────────── -->
+@if (resetPasswordUserId()) {
+  <div class="modal-overlay" (click)="resetPasswordUserId.set(null)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Reset Password</h2>
+        <button class="modal-close" (click)="resetPasswordUserId.set(null)">
+          ✕
+        </button>
+      </div>
+      <div class="modal-body">
+        <label>New Password</label>
+        <input
+          type="password"
+          placeholder="New password…"
+          [value]="newPassword()"
+          (input)="newPassword.set($any($event.target).value)"
+        />
+        @if (resetError()) {
+          <p class="form-error">{{ resetError() }}</p>
+        }
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="resetPasswordUserId.set(null)">
+          Cancel
+        </button>
+        <button
+          class="btn-primary"
+          [disabled]="resetSaving() || !newPassword()"
+          (click)="saveResetPassword()"
+        >
+          {{ resetSaving() ? "Resetting…" : "Reset Password" }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── DELETE USER CONFIRM ────────────────────────── -->
+@if (deletingUserId()) {
+  <div class="modal-overlay" (click)="deletingUserId.set(null)">
+    <div class="modal modal-sm" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Delete User</h2>
+        <button class="modal-close" (click)="deletingUserId.set(null)">
+          ✕
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Are you sure you want to delete this user? This action cannot be
+          undone.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="deletingUserId.set(null)">
+          Cancel
+        </button>
+        <button class="btn-danger" (click)="deleteUser()">Delete</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── DELETE SCAN CONFIRM ─────────────────────────── -->
+@if (deletingScanId()) {
+  <div class="modal-overlay" (click)="deletingScanId.set(null)">
+    <div class="modal modal-sm" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Delete Scan</h2>
+        <button class="modal-close" (click)="deletingScanId.set(null)">
+          ✕
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Are you sure you want to delete this scan? This action cannot be
+          undone.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="deletingScanId.set(null)">
+          Cancel
+        </button>
+        <button class="btn-danger" (click)="deleteScan()">Delete</button>
+      </div>
+    </div>
+  </div>
+}

@@ -31,6 +31,16 @@ public class PatientService : IPatientService
         return patients.Select(MapToDTO);
     }
 
+    public async Task<PatientDTO?> GetMyPatientAsync(Guid userId)
+    {
+        var patient = await _patientRepository.GetByPatientUserIdAsync(userId);
+        if (patient == null)
+        {
+            return null;
+        }
+        return MapToDTO(patient);
+    }
+
     public async Task<PatientDTO> CreatePatientAsync(CreatePatientDTO dto, Guid userId)
     {
         // Check if MRN already exists

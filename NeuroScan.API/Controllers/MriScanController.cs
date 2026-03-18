@@ -2,7 +2,6 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NeuroScan.Application.IServices;
-
 namespace NeuroScan.API.Controllers;
 
 [ApiController]
@@ -86,17 +85,18 @@ public class MriScanController : ControllerBase
     }
 
     /// <summary>
-    /// Get all scans for a specific patient (Doctor only)
+    /// Get all scans for a specific patient (Doctor or linked Standard User)
     /// </summary>
     [HttpGet("patient/{patientId}")]
-    [Authorize(Roles = "Doctor")]
+    [Authorize(Roles = "Doctor,StandardUser")]
     public async Task<ActionResult<IEnumerable<MriScanDetailDTO>>> GetPatientScans(Guid patientId)
     {
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userRole = User.FindFirstValue(ClaimTypes.Role);
 
         try
         {
-            var scans = await _mriScanService.GetScansByPatientIdAsync(patientId, userId);
+            var scans = await _mriScanService.GetScansByPatientIdAsync(patientId, userId, userRole == "Doctor");
             return Ok(scans);
         }
         catch (UnauthorizedAccessException)
@@ -177,4 +177,122 @@ public class MriScanController : ControllerBase
         var scans = await _mriScanService.GetPendingReviewScansAsync();
         return Ok(scans);
     }
+
+    /// <summary>
+    /// Get a single colored segmentation slice by index
+    /// </summary>
+    [HttpGet("{scanId}/segmentation-image/{sliceIndex:int}")]
+    public async Task<ActionResult> GetSegmentationSlice(Guid scanId, int sliceIndex)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userRole = User.FindFirstValue(ClaimTypes.Role);
+
+        var scan = await _mriScanService.GetScanDetailsAsync(scanId, userId, userRole == "Doctor");
+        if (scan == null) return NotFound(new { error = "Scan not found or access denied" });
+
+        var sliceDir = scan.AnalysisResult?.SegmentationImagePath;
+        var sliceCount = scan.AnalysisResult?.SegmentationSliceCount ?? 0;
+
+        if (string.IsNullOrEmpty(sliceDir) || sliceCount == 0)
+            return NotFound(new { error = "Segmentation slices not available" });
+
+        if (sliceIndex < 0 || sliceIndex >= sliceCount)
+            return BadRequest(new { error = $"Slice index must be between 0 and {sliceCount - 1}" });
+
+        var slicePath = Path.Combine(sliceDir, $"{sliceIndex}.png");
+        if (!System.IO.File.Exists(slicePath))
+            return NotFound(new { error = "Slice file not found" });
+
+        var bytes = await System.IO.File.ReadAllBytesAsync(slicePath);
+        return File(bytes, "image/png");
+    }
+
+    /// <summary>
+    /// Get count of raw grayscale MRI slices (triggers generation on first call). Doctor only.
+    /// </summary>
+    [HttpGet("{scanId}/raw-slice/count")]
+    [Authorize(Roles = "Doctor")]
+    public async Task<ActionResult<int>> GetRawSliceCount(Guid scanId)
+    {
+        var doctorId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var count = await _mriScanService.GetRawSliceCountAsync(scanId, doctorId);
+        return Ok(new { count });
+    }
+
+    /// <summary>
+    /// Get a single raw grayscale MRI slice. Doctor only.
+    /// </summary>
+    [HttpGet("{scanId}/raw-slice/{sliceIndex:int}")]
+    [Authorize(Roles = "Doctor")]
+    public async Task<ActionResult> GetRawSlice(Guid scanId, int sliceIndex)
+    {
+        var doctorId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var bytes = await _mriScanService.GetRawSliceAsync(scanId, sliceIndex, doctorId);
+        if (bytes == null) return NotFound(new { error = "Slice not available" });
+        return File(bytes, "image/png");
+    }
+
+    /// <summary>
+    /// Submit doctor review: approve/reject AI result with optional notes. Doctor only.
+    /// </summary>
+    [HttpPost("{scanId}/review")]
+    [Authorize(Roles = "Doctor")]
+    public async Task<ActionResult> SubmitReview(Guid scanId, [FromBody] DoctorReviewDTO dto)
+    {
+        var doctorId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        try
+        {
+            await _mriScanService.SubmitReviewAsync(scanId, doctorId, dto.Approved, dto.Notes ?? string.Empty);
+            return Ok(new { message = "Review submitted successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error submitting review");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Save a doctor-painted corrected segmentation slice. Doctor only.
+    /// </summary>
+    [HttpPost("{scanId}/corrected-slice/{sliceIndex:int}")]
+    [Authorize(Roles = "Doctor")]
+    public async Task<ActionResult> SaveCorrectedSlice(Guid scanId, int sliceIndex, [FromBody] CorrectedSliceDTO dto)
+    {
+        var doctorId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        try
+        {
+            await _mriScanService.SaveCorrectedSliceAsync(scanId, sliceIndex, dto.Base64Png, doctorId);
+            return Ok(new { message = "Corrected slice saved" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving corrected slice");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get a doctor-corrected slice image. Doctor only.
+    /// </summary>
+    [HttpGet("{scanId}/corrected-slice/{sliceIndex:int}")]
+    [Authorize(Roles = "Doctor")]
+    public async Task<ActionResult> GetCorrectedSlice(Guid scanId, int sliceIndex)
+    {
+        var doctorId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var bytes = await _mriScanService.GetCorrectedSliceAsync(scanId, sliceIndex, doctorId);
+        if (bytes == null) return NoContent();
+        return File(bytes, "image/png");
+    }
+}
+
+public class DoctorReviewDTO
+{
+    public bool Approved { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class CorrectedSliceDTO
+{
+    public string Base64Png { get; set; } = string.Empty;
 }

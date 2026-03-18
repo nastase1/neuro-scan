@@ -42,16 +42,26 @@ export class ScanHistoryComponent implements OnInit {
   constructor(private mriService: MriService, private router: Router) {}
 
   ngOnInit(): void {
-    this.mriService.getMyScans().subscribe({
-      next: (scans) => {
-        this.scans.set(scans);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.errorMessage.set('Failed to load scan history.');
-        this.isLoading.set(false);
-      }
-    });
+      // First, get the current user's patient record
+      this.mriService.getMyPatient().subscribe({
+        next: (patient) => {
+          // Then, fetch all scans for that patient
+          this.mriService.getPatientScans(patient.id).subscribe({
+            next: (scans) => {
+              this.scans.set(scans);
+              this.isLoading.set(false);
+            },
+            error: () => {
+              this.errorMessage.set('Failed to load scan history.');
+              this.isLoading.set(false);
+            }
+          });
+        },
+        error: () => {
+          this.errorMessage.set('No patient record found.');
+          this.isLoading.set(false);
+        }
+      });
   }
 
   viewScan(scanId: string): void {

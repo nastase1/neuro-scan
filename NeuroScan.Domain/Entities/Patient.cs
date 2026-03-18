@@ -7,6 +7,7 @@ public class Patient : BaseEntity
     public DateTime DateOfBirth { get; set; }
     public required string MedicalRecordNumber { get; set; }
     public string? Email { get; set; }
+    public Guid? UserId { get; set; }
     public Guid CreatedByUserId { get; set; }
 
     // Navigation properties

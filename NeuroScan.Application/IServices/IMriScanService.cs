@@ -8,10 +8,15 @@ public interface IMriScanService
     Task<MriScanResponseDTO> UploadAndProcessScanAsync(MriScanUploadDTO uploadDto, Guid userId);
     Task<MriScanResponseDTO> UploadSelfScanAsync(IFormFile file, string? notes, Guid userId);
     Task<MriScanDetailDTO?> GetScanDetailsAsync(Guid scanId, Guid userId, bool isDoctor = false);
-    Task<IEnumerable<MriScanDetailDTO>> GetScansByPatientIdAsync(Guid patientId, Guid doctorId);
+    Task<IEnumerable<MriScanDetailDTO>> GetScansByPatientIdAsync(Guid patientId, Guid requesterId, bool isDoctor = false);
     Task<IEnumerable<MriScanDetailDTO>> GetMyScansAsync(Guid userId);
     Task SubmitCorrectedMaskAsync(Guid scanId, IFormFile correctedMask, Guid doctorId);
     Task<IEnumerable<MriScanSummaryDTO>> GetPendingReviewScansAsync();
+    Task<int> GetRawSliceCountAsync(Guid scanId, Guid doctorId);
+    Task<byte[]?> GetRawSliceAsync(Guid scanId, int sliceIndex, Guid doctorId);
+    Task SubmitReviewAsync(Guid scanId, Guid doctorId, bool approved, string notes);
+    Task SaveCorrectedSliceAsync(Guid scanId, int sliceIndex, string base64Png, Guid doctorId);
+    Task<byte[]?> GetCorrectedSliceAsync(Guid scanId, int sliceIndex, Guid doctorId);
 }
 
 public class MriScanUploadDTO
@@ -33,6 +38,7 @@ public class MriScanDetailDTO
     public string OriginalFileName { get; set; } = string.Empty;
     public DateTime UploadDate { get; set; }
     public ScanStatus Status { get; set; }
+    public string? DoctorClinicalNotes { get; set; }
     public PatientBasicDTO Patient { get; set; } = null!;
     public AnalysisResultDTO? AnalysisResult { get; set; }
 }
@@ -46,25 +52,23 @@ public class PatientBasicDTO
 
 public class AnalysisResultDTO
 {
-    // Model 1 (UNet) results
+    // SegResNet volumetrics
     public double CsfVolume { get; set; }
     public double GmVolume { get; set; }
     public double WmVolume { get; set; }
     public double AsymmetryIndex { get; set; }
 
-    // Model 2 (SegResNet) results
-    public double CsfVolumeModel2 { get; set; }
-    public double GmVolumeModel2 { get; set; }
-    public double WmVolumeModel2 { get; set; }
-    public double AsymmetryIndexModel2 { get; set; }
+    // Epilepsy risk
+    public double EpilepsyRiskScore { get; set; }
+    public string EpilepsyRiskLevel { get; set; } = "Low";
 
-    // Comparison metrics
-    public double DiceScoreCsf { get; set; }
-    public double DiceScoreGm { get; set; }
-    public double DiceScoreWm { get; set; }
-    public double DisagreementPercentage { get; set; }
-    public string RecommendedModel { get; set; } = "unet";
-    public double ModelConfidence { get; set; }
+    // Segmentation image
+    public string? SegmentationImagePath { get; set; }
+    public int SegmentationSliceCount { get; set; }
+
+    // Doctor Review
+    public bool? DoctorApproved { get; set; }
+    public string? DoctorReviewNotes { get; set; }
 
     // Report
     public string? MedicalReportText { get; set; }

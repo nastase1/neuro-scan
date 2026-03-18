@@ -1,5 +1,5 @@
 <nav class="glass-card fixed top-0 left-0 right-0 z-50 m-4 animate-slide-down">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <div class="w-full px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
       <!-- Logo - Far Left -->
       <div class="flex-shrink-0">
@@ -13,51 +13,92 @@
       <div class="flex items-center space-x-6">
         <!-- Desktop Navigation -->
         <div class="hidden md:flex items-baseline space-x-4">
-          <a
-            routerLink="/dashboard"
-            routerLinkActive="bg-slate-600 text-cyan-400"
-            [routerLinkActiveOptions]="{ exact: false }"
-            (click)="closeMenus()"
-            class="px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
-          >
-            <svg
-              class="inline w-5 h-5 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          <ng-container *ngIf="isAdmin(); else standardDesktopNav">
+            <a
+              routerLink="/admin"
+              [queryParams]="{ tab: 'overview' }"
+              routerLinkActive="bg-slate-600 text-cyan-400"
+              [routerLinkActiveOptions]="{ exact: true }"
+              (click)="closeMenus()"
+              class="px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
+              >Overview</a
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-              ></path>
-            </svg>
-            Dashboard
-          </a>
-          <a
-            *ngIf="isDoctor()"
-            routerLink="/patients"
-            routerLinkActive="bg-slate-600 text-cyan-400"
-            [routerLinkActiveOptions]="{ exact: false }"
-            (click)="closeMenus()"
-            class="px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
-          >
-            <svg
-              class="inline w-5 h-5 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+            <a
+              routerLink="/admin"
+              [queryParams]="{ tab: 'users' }"
+              routerLinkActive="bg-slate-600 text-cyan-400"
+              [routerLinkActiveOptions]="{ exact: true }"
+              (click)="closeMenus()"
+              class="px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
+              >Users</a
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-              ></path>
-            </svg>
-            Patients
-          </a>
+            <a
+              routerLink="/admin"
+              [queryParams]="{ tab: 'doctors' }"
+              routerLinkActive="bg-slate-600 text-cyan-400"
+              [routerLinkActiveOptions]="{ exact: true }"
+              (click)="closeMenus()"
+              class="px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
+              >Doctors</a
+            >
+            <a
+              routerLink="/admin"
+              [queryParams]="{ tab: 'scans' }"
+              routerLinkActive="bg-slate-600 text-cyan-400"
+              [routerLinkActiveOptions]="{ exact: true }"
+              (click)="closeMenus()"
+              class="px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
+              >Scans</a
+            >
+          </ng-container>
+
+          <ng-template #standardDesktopNav>
+            <a
+              [routerLink]="getHomeRoute()"
+              routerLinkActive="bg-slate-600 text-cyan-400"
+              [routerLinkActiveOptions]="{ exact: false }"
+              (click)="closeMenus()"
+              class="px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
+            >
+              <svg
+                class="inline w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                ></path>
+              </svg>
+              Dashboard
+            </a>
+            <a
+              *ngIf="isDoctor()"
+              routerLink="/patients"
+              routerLinkActive="bg-slate-600 text-cyan-400"
+              [routerLinkActiveOptions]="{ exact: false }"
+              (click)="closeMenus()"
+              class="px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
+            >
+              <svg
+                class="inline w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                ></path>
+              </svg>
+              Patients
+            </a>
+          </ng-template>
         </div>
 
         <!-- Invite Code Button (Doctors only) -->
@@ -154,7 +195,7 @@
         </div>
 
         <!-- User Profile -->
-        <div class="relative">
+        <div class="relative hidden md:block">
           <button
             (click)="toggleProfile()"
             class="flex items-center space-x-3 px-4 py-2 rounded-lg bg-slate-700/40 hover:bg-slate-700/70 transition-all duration-300 border border-slate-700 hover:border-cyan-400/50"
@@ -208,9 +249,11 @@
                   <span
                     class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mt-0.5"
                     [class]="
-                      currentUser?.role === 1
-                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                        : 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
+                      currentUser?.role === 2
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                        : currentUser?.role === 1
+                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                          : 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
                     "
                   >
                     {{ getUserRole() }}
@@ -454,49 +497,86 @@
       </div>
 
       <!-- Navigation Links -->
-      <a
-        routerLink="/dashboard"
-        routerLinkActive="bg-slate-600 text-cyan-400"
-        (click)="closeMenus()"
-        class="block px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
-      >
-        <svg
-          class="inline w-5 h-5 mr-3"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      <ng-container *ngIf="isAdmin(); else standardMobileNav">
+        <a
+          routerLink="/admin"
+          [queryParams]="{ tab: 'overview' }"
+          routerLinkActive="bg-slate-600 text-cyan-400"
+          (click)="closeMenus()"
+          class="block px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
+          >Overview</a
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-          ></path>
-        </svg>
-        Dashboard
-      </a>
-      <a
-        *ngIf="isDoctor()"
-        routerLink="/patients"
-        routerLinkActive="bg-slate-600 text-cyan-400"
-        (click)="closeMenus()"
-        class="block px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
-      >
-        <svg
-          class="inline w-5 h-5 mr-3"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+        <a
+          routerLink="/admin"
+          [queryParams]="{ tab: 'users' }"
+          routerLinkActive="bg-slate-600 text-cyan-400"
+          (click)="closeMenus()"
+          class="block px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
+          >Users</a
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-          ></path>
-        </svg>
-        Patients
-      </a>
+        <a
+          routerLink="/admin"
+          [queryParams]="{ tab: 'doctors' }"
+          routerLinkActive="bg-slate-600 text-cyan-400"
+          (click)="closeMenus()"
+          class="block px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
+          >Doctors</a
+        >
+        <a
+          routerLink="/admin"
+          [queryParams]="{ tab: 'scans' }"
+          routerLinkActive="bg-slate-600 text-cyan-400"
+          (click)="closeMenus()"
+          class="block px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
+          >Scans</a
+        >
+      </ng-container>
+
+      <ng-template #standardMobileNav>
+        <a
+          [routerLink]="getHomeRoute()"
+          routerLinkActive="bg-slate-600 text-cyan-400"
+          (click)="closeMenus()"
+          class="block px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
+        >
+          <svg
+            class="inline w-5 h-5 mr-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+            ></path>
+          </svg>
+          Dashboard
+        </a>
+        <a
+          *ngIf="isDoctor()"
+          routerLink="/patients"
+          routerLinkActive="bg-slate-600 text-cyan-400"
+          (click)="closeMenus()"
+          class="block px-3 py-2 rounded-lg text-base font-medium text-gray-300 hover:bg-slate-700/70 hover:text-cyan-400 transition-all duration-300"
+        >
+          <svg
+            class="inline w-5 h-5 mr-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+            ></path>
+          </svg>
+          Patients
+        </a>
+      </ng-template>
 
       <!-- Logout -->
       <button

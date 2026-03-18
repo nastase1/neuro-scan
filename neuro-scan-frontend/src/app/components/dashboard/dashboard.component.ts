@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, ActivatedRoute } from '@angular/router';
+import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MriService } from '../../services/mri.service';
 import { PatientService } from '../../services/patient.service';
@@ -16,6 +16,7 @@ import jsPDF from 'jspdf';
   styleUrls: ['./dashboard.component.css']
 })
 export class DashboardComponent implements OnInit, OnDestroy {
+  readonly Math = Math;
   currentUser: User | null = null;
   
   // Upload states - using signals for zoneless change detection
@@ -74,26 +75,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // Analysis results - using signals for zoneless change detection
   analysisResult = signal<AnalysisResult | null>(null);
   
-  // Model 1 (UNet) metrics
+  // SegResNet metrics
   csfVolume = signal(0);
   gmVolume = signal(0);
   wmVolume = signal(0);
   asymmetryIndex = signal(0);
   
-  // Model 2 (SegResNet) metrics
-  csfVolumeModel2 = signal(0);
-  gmVolumeModel2 = signal(0);
-  wmVolumeModel2 = signal(0);
-  asymmetryIndexModel2 = signal(0);
+  // Epilepsy risk
+  epilepsyRiskScore = signal(0);
+  epilepsyRiskLevel = signal('Low');
   
-  // Comparison metrics
-  diceScoreCsf = signal(0);
-  diceScoreGm = signal(0);
-  diceScoreWm = signal(0);
-  avgDiceScore = signal(0);
-  disagreementPercentage = signal(0);
-  recommendedModel = signal('unet');
-  modelConfidence = signal(0);
+  // Segmentation image URL and slice navigation
+  segmentationImageUrl = signal<string | null>(null);
+  segmentationSliceCount = signal(0);
+  currentSliceIndex = signal(0);
+  isLoadingSlice = signal(false);
   
   medicalReport = signal('');
   
@@ -102,10 +98,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   scanId: string | null = null;
   pollingInterval: any;
 
+  private segmentationObjectUrl: string | null = null;
+
   constructor(
     private mriService: MriService,
     private patientService: PatientService,
     private route: ActivatedRoute,
+    private router: Router,
     public authService: AuthService
   ) {}
 
@@ -113,17 +112,26 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.authService.isDoctor();
   }
 
+  isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
+
   isStandardUser(): boolean {
-    return !this.authService.isDoctor();
+    return this.authService.isStandardUser();
   }
 
   ngOnInit(): void {
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
+
+      if (user && this.authService.isAdmin()) {
+        this.router.navigate(['/admin']);
+      }
     });
     
-    // Load available patients
-    this.loadPatients();
+    if (this.authService.isDoctor()) {
+      this.loadPatients();
+    }
     
     // Check if we have a scanId in query params (coming from scan list)
     this.route.queryParams.subscribe(params => {
@@ -139,9 +147,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
     }
+    if (this.segmentationObjectUrl) {
+      URL.revokeObjectURL(this.segmentationObjectUrl);
+    }
   }
 
   loadPatients(): void {
+    if (!this.authService.isDoctor()) {
+      return;
+    }
+
     console.log('Loading patients...');
     this.patientService.getAllPatients().subscribe({
       next: (patients) => {
@@ -348,85 +363,52 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private displayResults(result: AnalysisResult): void {
     console.log('Displaying results:', result);
     
-    // Model 1 (UNet) - use existing properties
     this.csfVolume.set(result.csfVolume);
     this.gmVolume.set(result.gmVolume);
     this.wmVolume.set(result.wmVolume);
     this.asymmetryIndex.set(result.asymmetryIndex);
+    this.epilepsyRiskScore.set(result.epilepsyRiskScore);
+    this.epilepsyRiskLevel.set(result.epilepsyRiskLevel ?? 'Low');
     
-    // Model 2 (SegResNet)
-    this.csfVolumeModel2.set(result.csfVolumeModel2);
-    this.gmVolumeModel2.set(result.gmVolumeModel2);
-    this.wmVolumeModel2.set(result.wmVolumeModel2);
-    this.asymmetryIndexModel2.set(result.asymmetryIndexModel2);
+    // Load segmentation slices
+    const sliceCount = result.segmentationSliceCount ?? 0;
+    this.segmentationSliceCount.set(sliceCount);
+    if (this.scanId && sliceCount > 0) {
+      // Start at the middle slice so the most informative cut shows first
+      const midSlice = Math.floor(sliceCount / 2);
+      this.currentSliceIndex.set(midSlice);
+      this.loadSlice(midSlice);
+    }
     
-    // Comparison metrics
-    this.diceScoreCsf.set(result.diceScoreCsf);
-    this.diceScoreGm.set(result.diceScoreGm);
-    this.diceScoreWm.set(result.diceScoreWm);
-    this.avgDiceScore.set((result.diceScoreCsf + result.diceScoreGm + result.diceScoreWm) / 3);
-    this.disagreementPercentage.set(result.disagreementPercentage);
-    this.recommendedModel.set(result.recommendedModel || 'unet');
-    this.modelConfidence.set(result.modelConfidence);
-    
-    // Use backend medical report if available, otherwise generate fallback
-    this.medicalReport.set(result.medicalReportText || this.generateFallbackReport());
+    this.medicalReport.set(result.medicalReportText || 'Medical report not available.');
     
     this.isAnalyzing.set(false);
     this.analysisComplete.set(true);
   }
 
-  private generateFallbackReport(): string {
-    return `NEURO-IMAGING ANALYSIS REPORT
-DUAL-MODEL AI COMPARISON
+  loadSlice(index: number): void {
+    if (!this.scanId) return;
+    this.isLoadingSlice.set(true);
+    this.mriService.getSegmentationSlice(this.scanId, index).subscribe({
+      next: (blob) => {
+        if (this.segmentationObjectUrl) {
+          URL.revokeObjectURL(this.segmentationObjectUrl);
+        }
+        this.segmentationObjectUrl = URL.createObjectURL(blob);
+        this.segmentationImageUrl.set(this.segmentationObjectUrl);
+        this.isLoadingSlice.set(false);
+      },
+      error: () => {
+        this.segmentationImageUrl.set(null);
+        this.isLoadingSlice.set(false);
+      }
+    });
+  }
 
-Patient MRI Analysis - Generated ${new Date().toLocaleDateString()}
-
-MODEL AGREEMENT & CONFIDENCE:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Overall Model Confidence: ${this.modelConfidence().toFixed(1)}%
-Recommended Model: ${this.recommendedModel().toUpperCase()}
-Disagreement: ${this.disagreementPercentage().toFixed(1)}%
-
-Dice Scores (Model Agreement):
-• CSF Agreement: ${(this.diceScoreCsf() * 100).toFixed(1)}%
-• GM Agreement: ${(this.diceScoreGm() * 100).toFixed(1)}%
-• WM Agreement: ${(this.diceScoreWm() * 100).toFixed(1)}%
-
-VOLUMETRIC ANALYSIS - UNet Model:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Cerebrospinal Fluid (CSF): ${this.csfVolume()} mL
-Grey Matter (GM): ${this.gmVolume()} mL
-White Matter (WM): ${this.wmVolume()} mL
-Brain Asymmetry Index: ${this.asymmetryIndex()}%
-
-VOLUMETRIC ANALYSIS - SegResNet Model:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Cerebrospinal Fluid (CSF): ${this.csfVolumeModel2()} mL
-Grey Matter (GM): ${this.gmVolumeModel2()} mL
-White Matter (WM): ${this.wmVolumeModel2()} mL
-Brain Asymmetry Index: ${this.asymmetryIndexModel2()}%
-
-CLINICAL INTERPRETATION:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Both AI models demonstrate ${this.avgDiceScore() > 0.95 ? 'excellent' : this.avgDiceScore() > 0.90 ? 'good' : 'moderate'} agreement.
-The MRI scan demonstrates brain structure with measured tissue volumes.
-Asymmetry indices from both models are recorded.
-
-RECOMMENDATIONS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-• Professional medical review recommended
-• Model agreement: ${this.modelConfidence().toFixed(1)}%
-• Follow clinical guidelines
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Dual-Model AI Analysis | Requires physician validation
-Generated by NeuroScan AI v2.0`;
+  onSliderChange(event: Event): void {
+    const index = parseInt((event.target as HTMLInputElement).value, 10);
+    this.currentSliceIndex.set(index);
+    this.loadSlice(index);
   }
 
   resetAnalysis(): void {
@@ -438,6 +420,13 @@ Generated by NeuroScan AI v2.0`;
     this.analysisComplete.set(false);
     this.analysisResult.set(null);
     this.scanId = null;
+    this.segmentationSliceCount.set(0);
+    this.currentSliceIndex.set(0);
+    if (this.segmentationObjectUrl) {
+      URL.revokeObjectURL(this.segmentationObjectUrl);
+      this.segmentationObjectUrl = null;
+    }
+    this.segmentationImageUrl.set(null);
     
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
@@ -476,8 +465,8 @@ Generated by NeuroScan AI v2.0`;
     doc.setFont('helvetica', 'bold');
     doc.text('NEUROSCAN', pageWidth / 2, yPos, { align: 'center' });
     yPos += 10;
-    doc.setFontSize(16);
-    doc.text('Brain MRI Analysis Report', pageWidth / 2, yPos, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text('Brain MRI Analysis Report — Epilepsy Assessment', pageWidth / 2, yPos, { align: 'center' });
     yPos += 15;
 
     // Patient Info
@@ -497,77 +486,39 @@ Generated by NeuroScan AI v2.0`;
       yPos += 10;
     }
 
-    // Analysis Date
     doc.text(`Analysis Date: ${this.analysisResult()?.analyzedAt || new Date().toLocaleDateString()}`, leftMargin, yPos);
     yPos += 12;
 
-    // Model Agreement Section
+    // Epilepsy Risk
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Model Agreement & Confidence', leftMargin, yPos);
+    doc.text('Epilepsy Risk Assessment', leftMargin, yPos);
     yPos += 7;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text(`Overall Dice Score: ${(this.avgDiceScore() * 100).toFixed(1)}%`, leftMargin, yPos);
+    doc.text(`Risk Level: ${this.epilepsyRiskLevel()}`, leftMargin, yPos);
     yPos += 5;
-    doc.text(`Model Confidence: ${this.modelConfidence().toFixed(1)}%`, leftMargin, yPos);
-    yPos += 5;
-    doc.text(`Recommended Model: ${this.recommendedModel().toUpperCase()}`, leftMargin, yPos);
-    yPos += 5;
-    doc.text(`Disagreement: ${this.disagreementPercentage().toFixed(1)}%`, leftMargin, yPos);
+    doc.text(`Risk Score: ${this.epilepsyRiskScore().toFixed(0)}/100`, leftMargin, yPos);
     yPos += 12;
 
-    // UNet Model Results
+    // SegResNet Volumetrics
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('UNet Model Results', leftMargin, yPos);
+    doc.text('SegResNet Volumetric Analysis', leftMargin, yPos);
     yPos += 7;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text(`CSF Volume: ${this.csfVolume().toFixed(2)} mL`, leftMargin, yPos);
+    doc.text(`CSF Volume: ${this.csfVolume().toFixed(2)} cm3`, leftMargin, yPos);
     yPos += 5;
-    doc.text(`Gray Matter Volume: ${this.gmVolume().toFixed(2)} mL`, leftMargin, yPos);
+    doc.text(`Gray Matter Volume: ${this.gmVolume().toFixed(2)} cm3`, leftMargin, yPos);
     yPos += 5;
-    doc.text(`White Matter Volume: ${this.wmVolume().toFixed(2)} mL`, leftMargin, yPos);
+    doc.text(`White Matter Volume: ${this.wmVolume().toFixed(2)} cm3`, leftMargin, yPos);
     yPos += 5;
-    doc.text(`Brain Asymmetry: ${this.asymmetryIndex().toFixed(2)}%`, leftMargin, yPos);
-    yPos += 12;
-
-    // SegResNet Model Results
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('SegResNet Model Results', leftMargin, yPos);
-    yPos += 7;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(`CSF Volume: ${this.csfVolumeModel2().toFixed(2)} mL`, leftMargin, yPos);
-    yPos += 5;
-    doc.text(`Gray Matter Volume: ${this.gmVolumeModel2().toFixed(2)} mL`, leftMargin, yPos);
-    yPos += 5;
-    doc.text(`White Matter Volume: ${this.wmVolumeModel2().toFixed(2)} mL`, leftMargin, yPos);
-    yPos += 5;
-    doc.text(`Brain Asymmetry: ${this.asymmetryIndexModel2().toFixed(2)}%`, leftMargin, yPos);
-    yPos += 12;
-
-    // Dice Scores
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Model Agreement (Dice Scores)', leftMargin, yPos);
-    yPos += 7;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(`CSF Agreement: ${(this.diceScoreCsf() * 100).toFixed(1)}%`, leftMargin, yPos);
-    yPos += 5;
-    doc.text(`Gray Matter Agreement: ${(this.diceScoreGm() * 100).toFixed(1)}%`, leftMargin, yPos);
-    yPos += 5;
-    doc.text(`White Matter Agreement: ${(this.diceScoreWm() * 100).toFixed(1)}%`, leftMargin, yPos);
+    doc.text(`Asymmetry Index: ${this.asymmetryIndex().toFixed(4)}%`, leftMargin, yPos);
     yPos += 12;
 
     // Medical Report
-    if (yPos > 240) {
-      doc.addPage();
-      yPos = 20;
-    }
+    if (yPos > 240) { doc.addPage(); yPos = 20; }
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Medical Report', leftMargin, yPos);
@@ -575,15 +526,10 @@ Generated by NeuroScan AI v2.0`;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
 
-    // Split medical report into lines that fit the page width
     const report = this.medicalReport();
     const lines = doc.splitTextToSize(report, rightMargin - leftMargin);
-    
     for (let i = 0; i < lines.length; i++) {
-      if (yPos > 280) {
-        doc.addPage();
-        yPos = 20;
-      }
+      if (yPos > 280) { doc.addPage(); yPos = 20; }
       doc.text(lines[i], leftMargin, yPos);
       yPos += 5;
     }
@@ -602,8 +548,7 @@ Generated by NeuroScan AI v2.0`;
       );
     }
 
-    // Save the PDF
-    const fileName = `NeuroScan_Analysis_${selectedPatient?.lastName || 'Patient'}_${new Date().toISOString().split('T')[0]}.pdf`;
+    const fileName = `NeuroScan_EpilepsyReport_${selectedPatient?.lastName || 'Patient'}_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(fileName);
   }
 }

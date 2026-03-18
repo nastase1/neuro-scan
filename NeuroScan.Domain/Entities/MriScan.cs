@@ -8,6 +8,7 @@ public class MriScan : BaseEntity
     public DateTime UploadDate { get; set; }
     public ScanStatus Status { get; set; }
     public Guid? ReviewedByDoctorId { get; set; }
+    public string? DoctorClinicalNotes { get; set; }
     public string? CorrectedMaskPath { get; set; } // Path to doctor's correction
     public DateTime? ReviewedAt { get; set; }
 

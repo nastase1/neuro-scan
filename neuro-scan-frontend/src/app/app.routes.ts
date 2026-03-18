@@ -7,8 +7,10 @@ import { PatientFormComponent } from './components/patient-form/patient-form.com
 import { PatientDetailComponent } from './components/patient-detail/patient-detail.component';
 import { ForgotPasswordComponent } from './components/forgot-password/forgot-password.component';
 import { ScanHistoryComponent } from './components/scan-history/scan-history.component';
+import { DoctorReviewComponent } from './components/doctor-review/doctor-review.component';
+import { AdminComponent } from './components/admin/admin.component';
 import { authGuard } from './guards/auth.guard';
-import { doctorGuard } from './guards/role.guard';
+import { doctorGuard, adminGuard } from './guards/role.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -44,6 +46,16 @@ export const routes: Routes = [
     path: 'patients/:id/edit', 
     component: PatientFormComponent,
     canActivate: [authGuard, doctorGuard]
+  },
+  {
+    path: 'review/:scanId',
+    component: DoctorReviewComponent,
+    canActivate: [authGuard, doctorGuard]
+  },
+  {
+    path: 'admin',
+    component: AdminComponent,
+    canActivate: [authGuard, adminGuard]
   },
   { path: '**', redirectTo: '/login' }
 ];

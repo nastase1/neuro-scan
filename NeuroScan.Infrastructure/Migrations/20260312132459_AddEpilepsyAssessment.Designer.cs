@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NeuroScan.Infrastructure.Context;
 
@@ -10,9 +11,11 @@ using NeuroScan.Infrastructure.Context;
 namespace NeuroScan.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260312132459_AddEpilepsyAssessment")]
+    partial class AddEpilepsyAssessment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.24");
@@ -38,12 +41,6 @@ namespace NeuroScan.Infrastructure.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<bool?>("DoctorApproved")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("DoctorReviewNotes")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("EpilepsyRiskLevel")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -62,9 +59,6 @@ namespace NeuroScan.Infrastructure.Migrations
 
                     b.Property<string>("SegmentationImagePath")
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("SegmentationSliceCount")
-                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
@@ -93,9 +87,6 @@ namespace NeuroScan.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("DoctorClinicalNotes")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("OriginalFileName")
@@ -169,9 +160,6 @@ namespace NeuroScan.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid?>("UserId")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");

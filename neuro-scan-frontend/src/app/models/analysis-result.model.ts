@@ -1,23 +1,17 @@
 export interface AnalysisResult {
   id: string;
   mriScanId: string;
-  // Model 1 (UNet) metrics
+  // SegResNet volumetrics
   csfVolume: number;
   gmVolume: number;
   wmVolume: number;
   asymmetryIndex: number;
-  // Model 2 (SegResNet) metrics
-  csfVolumeModel2: number;
-  gmVolumeModel2: number;
-  wmVolumeModel2: number;
-  asymmetryIndexModel2: number;
-  // Comparison metrics
-  diceScoreCsf: number;
-  diceScoreGm: number;
-  diceScoreWm: number;
-  disagreementPercentage: number;
-  recommendedModel: string;
-  modelConfidence: number;
+  // Epilepsy risk
+  epilepsyRiskScore: number;
+  epilepsyRiskLevel: string; // 'Low' | 'Moderate' | 'High'
+  // Segmentation image
+  segmentationImagePath?: string;
+  segmentationSliceCount?: number;
   // Report
   medicalReportText: string | null;
   analyzedAt: Date;

@@ -32,6 +32,24 @@ public class PatientController : ControllerBase
     }
 
     /// <summary>
+    /// Get the current user's patient record (for standard users)
+    /// </summary>
+    [HttpGet("my-patient")]
+    [Authorize(Roles = "StandardUser")]
+    public async Task<ActionResult<PatientDTO>> GetMyPatient()
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var patient = await _patientService.GetMyPatientAsync(userId);
+
+        if (patient == null)
+        {
+            return NotFound(new { error = "Patient record not found" });
+        }
+
+        return Ok(patient);
+    }
+
+    /// <summary>
     /// Get a specific patient by ID (Doctor-only, only their own patients)
     /// </summary>
     [HttpGet("{patientId}")]

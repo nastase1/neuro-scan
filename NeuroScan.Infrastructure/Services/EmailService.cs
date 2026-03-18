@@ -122,7 +122,25 @@ public class EmailService : IEmailService
   {
     var subject = "NeuroScan – Your MRI Analysis Results Are Ready";
 
-    // Build HTML email body
+    var riskColor = data.EpilepsyRiskLevel switch
+    {
+      "High" => "#dc2626",
+      "Moderate" => "#d97706",
+      _ => "#16a34a"
+    };
+    var riskBg = data.EpilepsyRiskLevel switch
+    {
+      "High" => "#fef2f2",
+      "Moderate" => "#fffbeb",
+      _ => "#f0fdf4"
+    };
+    var riskBorder = data.EpilepsyRiskLevel switch
+    {
+      "High" => "#fecaca",
+      "Moderate" => "#fde68a",
+      _ => "#bbf7d0"
+    };
+
     var body = $"""
             <!DOCTYPE html>
             <html>
@@ -135,42 +153,30 @@ public class EmailService : IEmailService
                       <td style="background:linear-gradient(135deg,#0891b2,#0d9488); padding:32px 40px; text-align:center;">
                         <div style="font-size:36px; margin-bottom:12px;">🧠</div>
                         <h1 style="margin:0 0 6px; color:#ffffff; font-size:22px; font-weight:700;">MRI Analysis Complete</h1>
-                        <p style="margin:0; color:rgba(255,255,255,0.8); font-size:14px;">Scan Date: {data.ScanDate:MMMM dd, yyyy}</p>
+                        <p style="margin:0; color:rgba(255,255,255,0.85); font-size:14px;">Scan Date: {data.ScanDate:MMMM dd, yyyy}</p>
                       </td>
                     </tr>
                     <!-- Body -->
                     <tr>
                       <td style="padding:36px 40px;">
                         <p style="margin:0 0 12px; color:#111827; font-size:15px; line-height:1.7;">Dear <strong>{patientName}</strong>,</p>
-                        <p style="margin:0 0 24px; color:#374151; font-size:15px; line-height:1.7;">Your brain MRI scan has been analyzed by our AI. Below are the results. A full PDF report is attached to this email.</p>
+                        <p style="margin:0 0 28px; color:#374151; font-size:15px; line-height:1.7;">Your brain MRI has been analyzed using our SegResNet AI model. Below are the results. A full PDF report is attached.</p>
 
-                        <!-- Model 1 -->
-                        <p style="margin:0 0 8px; color:#0891b2; font-weight:700; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">Model 1 – UNet Segmentation</p>
-                        <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; margin-bottom:20px; font-size:14px;">
-                          <tr style="background:#f0fdfa;"><td style="padding:10px 14px; color:#374151;">CSF Volume</td><td style="padding:10px 14px; color:#111827; font-weight:600; text-align:right;">{data.CsfVolume:F2} mL</td></tr>
-                          <tr><td style="padding:10px 14px; color:#374151;">Grey Matter Volume</td><td style="padding:10px 14px; color:#111827; font-weight:600; text-align:right;">{data.GmVolume:F2} mL</td></tr>
-                          <tr style="background:#f0fdfa;"><td style="padding:10px 14px; color:#374151;">White Matter Volume</td><td style="padding:10px 14px; color:#111827; font-weight:600; text-align:right;">{data.WmVolume:F2} mL</td></tr>
-                          <tr><td style="padding:10px 14px; color:#374151;">Asymmetry Index</td><td style="padding:10px 14px; color:#111827; font-weight:600; text-align:right;">{data.AsymmetryIndex:F4}</td></tr>
-                        </table>
+                        <!-- Epilepsy Risk Banner -->
+                        <div style="background:{riskBg}; border:2px solid {riskBorder}; border-radius:10px; padding:20px 24px; margin-bottom:28px; display:flex; align-items:center;">
+                          <div>
+                            <p style="margin:0 0 4px; font-size:13px; color:#374151; text-transform:uppercase; letter-spacing:0.5px; font-weight:600;">Epilepsy Risk Assessment</p>
+                            <p style="margin:0; font-size:22px; font-weight:700; color:{riskColor};">{data.EpilepsyRiskLevel} Risk &nbsp;<span style="font-size:15px; font-weight:400; color:#6b7280;">({data.EpilepsyRiskScore:F0}/100)</span></p>
+                          </div>
+                        </div>
 
-                        <!-- Model 2 -->
-                        <p style="margin:0 0 8px; color:#0d9488; font-weight:700; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">Model 2 – SegResNet Segmentation</p>
-                        <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; margin-bottom:20px; font-size:14px;">
-                          <tr style="background:#f0fdf4;"><td style="padding:10px 14px; color:#374151;">CSF Volume</td><td style="padding:10px 14px; color:#111827; font-weight:600; text-align:right;">{data.CsfVolumeModel2:F2} mL</td></tr>
-                          <tr><td style="padding:10px 14px; color:#374151;">Grey Matter Volume</td><td style="padding:10px 14px; color:#111827; font-weight:600; text-align:right;">{data.GmVolumeModel2:F2} mL</td></tr>
-                          <tr style="background:#f0fdf4;"><td style="padding:10px 14px; color:#374151;">White Matter Volume</td><td style="padding:10px 14px; color:#111827; font-weight:600; text-align:right;">{data.WmVolumeModel2:F2} mL</td></tr>
-                          <tr><td style="padding:10px 14px; color:#374151;">Asymmetry Index</td><td style="padding:10px 14px; color:#111827; font-weight:600; text-align:right;">{data.AsymmetryIndexModel2:F4}</td></tr>
-                        </table>
-
-                        <!-- Comparison -->
-                        <p style="margin:0 0 8px; color:#7c3aed; font-weight:700; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">Model Comparison</p>
-                        <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; margin-bottom:24px; font-size:14px;">
-                          <tr style="background:#faf5ff;"><td style="padding:10px 14px; color:#374151;">Dice Score – CSF</td><td style="padding:10px 14px; color:#111827; font-weight:600; text-align:right;">{data.DiceScoreCsf:F4}</td></tr>
-                          <tr><td style="padding:10px 14px; color:#374151;">Dice Score – GM</td><td style="padding:10px 14px; color:#111827; font-weight:600; text-align:right;">{data.DiceScoreGm:F4}</td></tr>
-                          <tr style="background:#faf5ff;"><td style="padding:10px 14px; color:#374151;">Dice Score – WM</td><td style="padding:10px 14px; color:#111827; font-weight:600; text-align:right;">{data.DiceScoreWm:F4}</td></tr>
-                          <tr><td style="padding:10px 14px; color:#374151;">Disagreement</td><td style="padding:10px 14px; color:#111827; font-weight:600; text-align:right;">{data.DisagreementPercentage:F2}%</td></tr>
-                          <tr style="background:#faf5ff;"><td style="padding:10px 14px; color:#374151;">Recommended Model</td><td style="padding:10px 14px; color:#0891b2; font-weight:700; text-align:right;">{data.RecommendedModel}</td></tr>
-                          <tr><td style="padding:10px 14px; color:#374151;">Confidence</td><td style="padding:10px 14px; color:#111827; font-weight:600; text-align:right;">{data.ModelConfidence:F1}%</td></tr>
+                        <!-- Volumetrics -->
+                        <p style="margin:0 0 8px; color:#0891b2; font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:0.5px;">SegResNet Volumetric Analysis</p>
+                        <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; margin-bottom:28px; font-size:14px;">
+                          <tr style="background:#f0fdfa;"><td style="padding:10px 14px; color:#374151;">CSF Volume</td><td style="padding:10px 14px; color:#111827; font-weight:600; text-align:right;">{data.CsfVolume:F2} cm³</td></tr>
+                          <tr><td style="padding:10px 14px; color:#374151;">Gray Matter Volume</td><td style="padding:10px 14px; color:#111827; font-weight:600; text-align:right;">{data.GmVolume:F2} cm³</td></tr>
+                          <tr style="background:#f0fdfa;"><td style="padding:10px 14px; color:#374151;">White Matter Volume</td><td style="padding:10px 14px; color:#111827; font-weight:600; text-align:right;">{data.WmVolume:F2} cm³</td></tr>
+                          <tr><td style="padding:10px 14px; color:#374151;">Asymmetry Index</td><td style="padding:10px 14px; color:#111827; font-weight:600; text-align:right;">{data.AsymmetryIndex:F4}%</td></tr>
                         </table>
 
                         <!-- AI Medical Report -->
@@ -179,7 +185,7 @@ public class EmailService : IEmailService
 
                         <!-- Disclaimer -->
                         <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:16px 20px; margin-top:24px;">
-                          <p style="margin:0; color:#92400e; font-size:13px;">⚠️ This report is generated by AI and is intended to assist your physician. It does not replace professional medical advice. Please consult your doctor to discuss these results.</p>
+                          <p style="margin:0; color:#92400e; font-size:13px;">⚠️ This report is AI-generated and must be interpreted by a qualified neurologist alongside clinical history and EEG data. It does not replace professional medical advice.</p>
                         </div>
                       </td>
                     </tr>
@@ -199,7 +205,6 @@ public class EmailService : IEmailService
     // Generate PDF
     var pdfBytes = GenerateReportPdf(patientName, data);
 
-    // Send with attachment
     var message = new MimeMessage();
     message.From.Add(new MailboxAddress(_settings.FromName, _settings.FromEmail));
     message.To.Add(new MailboxAddress(string.Empty, toEmail));
@@ -227,102 +232,85 @@ public class EmailService : IEmailService
 
   private static byte[] GenerateReportPdf(string patientName, ScanResultEmailData data)
   {
+    var riskColor = data.EpilepsyRiskLevel switch
+    {
+      "High" => "#dc2626",
+      "Moderate" => "#d97706",
+      _ => "#16a34a"
+    };
+
     var doc = Document.Create(container =>
     {
       container.Page(page =>
+      {
+        page.Size(PageSizes.A4);
+        page.Margin(40);
+        page.DefaultTextStyle(t => t.FontSize(10).FontColor("#1e293b"));
+
+        page.Header().Column(col =>
+        {
+          col.Item().Row(row =>
           {
-            page.Size(PageSizes.A4);
-            page.Margin(40);
-            page.DefaultTextStyle(t => t.FontSize(10).FontColor("#1e293b"));
-
-            page.Header().Column(col =>
-                {
-                  col.Item().Row(row =>
-                    {
-                      row.RelativeItem().Column(c =>
-                        {
-                          c.Item().Text("NeuroScan").FontSize(22).Bold().FontColor("#0891b2");
-                          c.Item().Text("AI Brain MRI Analysis Report").FontSize(12).FontColor("#475569");
-                        });
-                      row.ConstantItem(120).AlignRight().Column(c =>
-                        {
-                          c.Item().Text($"Date: {data.ScanDate:yyyy-MM-dd}").FontSize(9).FontColor("#64748b");
-                          c.Item().Text($"Patient: {patientName}").FontSize(9).Bold();
-                        });
-                    });
-                  col.Item().PaddingTop(8).LineHorizontal(1).LineColor("#e2e8f0");
-                });
-
-            page.Content().PaddingTop(20).Column(col =>
-                {
-                  // Model 1
-                  col.Item().Text("Model 1 — UNet Segmentation").FontSize(13).Bold().FontColor("#0891b2");
-                  col.Item().PaddingTop(6).Table(t =>
-                    {
-                      t.ColumnsDefinition(c => { c.RelativeColumn(); c.RelativeColumn(); });
-                      void Row(string label, string value)
-                      {
-                        t.Cell().Padding(4).Text(label).FontColor("#475569");
-                        t.Cell().Padding(4).AlignRight().Text(value).Bold();
-                      }
-                      Row("CSF Volume", $"{data.CsfVolume:F2} mL");
-                      Row("Grey Matter Volume", $"{data.GmVolume:F2} mL");
-                      Row("White Matter Volume", $"{data.WmVolume:F2} mL");
-                      Row("Asymmetry Index", $"{data.AsymmetryIndex:F4}");
-                    });
-
-                  col.Item().PaddingTop(16).Text("Model 2 — SegResNet Segmentation").FontSize(13).Bold().FontColor("#0d9488");
-                  col.Item().PaddingTop(6).Table(t =>
-                    {
-                      t.ColumnsDefinition(c => { c.RelativeColumn(); c.RelativeColumn(); });
-                      void Row(string label, string value)
-                      {
-                        t.Cell().Padding(4).Text(label).FontColor("#475569");
-                        t.Cell().Padding(4).AlignRight().Text(value).Bold();
-                      }
-                      Row("CSF Volume", $"{data.CsfVolumeModel2:F2} mL");
-                      Row("Grey Matter Volume", $"{data.GmVolumeModel2:F2} mL");
-                      Row("White Matter Volume", $"{data.WmVolumeModel2:F2} mL");
-                      Row("Asymmetry Index", $"{data.AsymmetryIndexModel2:F4}");
-                    });
-
-                  col.Item().PaddingTop(16).Text("Model Comparison").FontSize(13).Bold().FontColor("#7c3aed");
-                  col.Item().PaddingTop(6).Table(t =>
-                    {
-                      t.ColumnsDefinition(c => { c.RelativeColumn(); c.RelativeColumn(); });
-                      void Row(string label, string value)
-                      {
-                        t.Cell().Padding(4).Text(label).FontColor("#475569");
-                        t.Cell().Padding(4).AlignRight().Text(value).Bold();
-                      }
-                      Row("Dice Score — CSF", $"{data.DiceScoreCsf:F4}");
-                      Row("Dice Score — GM", $"{data.DiceScoreGm:F4}");
-                      Row("Dice Score — WM", $"{data.DiceScoreWm:F4}");
-                      Row("Disagreement", $"{data.DisagreementPercentage:F2}%");
-                      Row("Recommended Model", data.RecommendedModel);
-                      Row("Confidence", $"{data.ModelConfidence:F1}%");
-                    });
-
-                  col.Item().PaddingTop(20).LineHorizontal(1).LineColor("#e2e8f0");
-
-                  col.Item().PaddingTop(16).Text("AI Medical Interpretation").FontSize(13).Bold().FontColor("#0f172a");
-                  col.Item().PaddingTop(8).Text(data.MedicalReport).FontSize(10).FontColor("#334155").LineHeight(1.6f);
-
-                  col.Item().PaddingTop(24).Background("#fef9c3").Padding(12).Border(1).BorderColor("#fde047").Column(warn =>
-                    {
-                      warn.Item().Text("Disclaimer").Bold().FontColor("#854d0e");
-                      warn.Item().PaddingTop(4).Text("This report is generated by AI and is intended to assist a qualified physician. It does not replace professional medical advice. Please consult your doctor to discuss these results.").FontSize(9).FontColor("#713f12");
-                    });
-                });
-
-            page.Footer().AlignCenter().Text(t =>
-                {
-                  t.Span("© 2026 NeuroScan — Medical-grade AI imaging platform  |  Page ").FontSize(8).FontColor("#94a3b8");
-                  t.CurrentPageNumber().FontSize(8).FontColor("#94a3b8");
-                  t.Span(" of ").FontSize(8).FontColor("#94a3b8");
-                  t.TotalPages().FontSize(8).FontColor("#94a3b8");
-                });
+            row.RelativeItem().Column(c =>
+            {
+              c.Item().Text("NeuroScan").FontSize(22).Bold().FontColor("#0891b2");
+              c.Item().Text("AI Brain MRI Analysis Report — Epilepsy Assessment").FontSize(11).FontColor("#475569");
+            });
+            row.ConstantItem(130).AlignRight().Column(c =>
+            {
+              c.Item().Text($"Date: {data.ScanDate:yyyy-MM-dd}").FontSize(9).FontColor("#64748b");
+              c.Item().Text($"Patient: {patientName}").FontSize(9).Bold();
+            });
           });
+          col.Item().PaddingTop(8).LineHorizontal(1).LineColor("#e2e8f0");
+        });
+
+        page.Content().PaddingTop(20).Column(col =>
+        {
+          // Epilepsy Risk Banner
+          col.Item().Background(data.EpilepsyRiskLevel == "High" ? "#fef2f2" : data.EpilepsyRiskLevel == "Moderate" ? "#fffbeb" : "#f0fdf4")
+            .Border(1).BorderColor(data.EpilepsyRiskLevel == "High" ? "#fecaca" : data.EpilepsyRiskLevel == "Moderate" ? "#fde68a" : "#bbf7d0")
+            .Padding(14).Column(b =>
+          {
+            b.Item().Text("EPILEPSY RISK ASSESSMENT").FontSize(9).Bold().FontColor("#6b7280");
+            b.Item().PaddingTop(4).Text($"{data.EpilepsyRiskLevel.ToUpper()} RISK  ({data.EpilepsyRiskScore:F0}/100)").FontSize(16).Bold().FontColor(riskColor);
+          });
+
+          col.Item().PaddingTop(20).Text("SegResNet Volumetric Analysis").FontSize(13).Bold().FontColor("#0891b2");
+          col.Item().PaddingTop(6).Table(t =>
+          {
+            t.ColumnsDefinition(c => { c.RelativeColumn(); c.RelativeColumn(); });
+            void Row(string label, string value)
+            {
+              t.Cell().Padding(4).Text(label).FontColor("#475569");
+              t.Cell().Padding(4).AlignRight().Text(value).Bold();
+            }
+            Row("CSF Volume", $"{data.CsfVolume:F2} cm³");
+            Row("Gray Matter Volume", $"{data.GmVolume:F2} cm³");
+            Row("White Matter Volume", $"{data.WmVolume:F2} cm³");
+            Row("Asymmetry Index", $"{data.AsymmetryIndex:F4}%");
+          });
+
+          col.Item().PaddingTop(20).LineHorizontal(1).LineColor("#e2e8f0");
+
+          col.Item().PaddingTop(16).Text("AI Medical Interpretation").FontSize(13).Bold().FontColor("#0f172a");
+          col.Item().PaddingTop(8).Text(data.MedicalReport).FontSize(10).FontColor("#334155").LineHeight(1.6f);
+
+          col.Item().PaddingTop(24).Background("#fffbeb").Padding(12).Border(1).BorderColor("#fde047").Column(warn =>
+          {
+            warn.Item().Text("Disclaimer").Bold().FontColor("#854d0e");
+            warn.Item().PaddingTop(4).Text("This report is AI-generated and must be interpreted by a qualified neurologist alongside clinical history and EEG data. It does not replace professional medical advice.").FontSize(9).FontColor("#713f12");
+          });
+        });
+
+        page.Footer().AlignCenter().Text(t =>
+        {
+          t.Span("© 2026 NeuroScan — Medical-grade AI imaging platform  |  Page ").FontSize(8).FontColor("#94a3b8");
+          t.CurrentPageNumber().FontSize(8).FontColor("#94a3b8");
+          t.Span(" of ").FontSize(8).FontColor("#94a3b8");
+          t.TotalPages().FontSize(8).FontColor("#94a3b8");
+        });
+      });
     });
 
     return doc.GeneratePdf();
@@ -334,7 +322,6 @@ public class EmailService : IEmailService
     message.From.Add(new MailboxAddress(_settings.FromName, _settings.FromEmail));
     message.To.Add(new MailboxAddress(string.Empty, toEmail));
     message.Subject = subject;
-
     message.Body = new TextPart("html") { Text = htmlBody };
 
     using var client = new SmtpClient();

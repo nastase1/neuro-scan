@@ -48,7 +48,8 @@ export interface User {
 
 export enum UserRole {
   StandardUser = 0,
-  Doctor = 1
+  Doctor = 1,
+  Admin = 2
 }
 
 export interface Patient {
@@ -94,6 +95,7 @@ export interface MriScanDetail {
   originalFileName: string;
   uploadDate: string;
   status: ScanStatus;
+  doctorClinicalNotes?: string;
   analysisResult?: AnalysisResult;
 }
 
@@ -107,25 +109,21 @@ export interface PatientBasic {
 
 export interface AnalysisResult {
   id: string;
-  // Model 1 (UNet) results
+  // SegResNet volumetrics
   csfVolume: number;
   gmVolume: number;
   wmVolume: number;
   asymmetryIndex: number;
-  // Model 2 (SegResNet) results
-  csfVolumeModel2: number;
-  gmVolumeModel2: number;
-  wmVolumeModel2: number;
-  asymmetryIndexModel2: number;
-  // Comparison metrics
-  diceScoreCsf: number;
-  diceScoreGm: number;
-  diceScoreWm: number;
-  disagreementPercentage: number;
-  recommendedModel?: string;
-  modelConfidence: number;
+  // Epilepsy risk
+  epilepsyRiskScore: number;
+  epilepsyRiskLevel: string; // 'Low' | 'Moderate' | 'High'
+  // Segmentation image
+  segmentationImagePath?: string;
+  segmentationSliceCount?: number;
   medicalReportText?: string;
   analyzedAt: string;
+  doctorApproved?: boolean;
+  doctorReviewNotes?: string;
 }
 
 export enum ScanStatus {
@@ -134,4 +132,80 @@ export enum ScanStatus {
   Analyzed = 2,
   Failed = 3,
   ReviewedByDoctor = 4
+}
+
+export interface PagedResult<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface AdminStats {
+  totalUsers: number;
+  totalDoctors: number;
+  totalPatients: number;
+  totalScans: number;
+  pendingReviews: number;
+  analyzedScans: number;
+  reviewedScans: number;
+  failedScans: number;
+}
+
+export interface AdminUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: UserRole;
+  createdAt: string;
+  inviteCode?: string;
+  assignedDoctorId?: string;
+  assignedDoctorName?: string;
+  patientCount: number;
+  scanCount: number;
+}
+
+export interface AdminUpdateUser {
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: UserRole;
+}
+
+export interface AdminPatientSummary {
+  id: string;
+  fullName: string;
+  medicalRecordNumber: string;
+  scanCount: number;
+  createdAt: string;
+}
+
+export interface AdminDoctor {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  inviteCode?: string;
+  createdAt: string;
+  patientCount: number;
+  scanCount: number;
+  reviewCount: number;
+  patients: AdminPatientSummary[];
+}
+
+export interface AdminScan {
+  id: string;
+  originalFileName: string;
+  uploadDate: string;
+  status: ScanStatus;
+  patientId?: string;
+  patientName?: string;
+  patientMrn?: string;
+  reviewedByDoctorId?: string;
+  reviewedByDoctorName?: string;
+  reviewedAt?: string;
+  doctorApproved?: boolean;
+  epilepsyRiskLevel?: string;
 }

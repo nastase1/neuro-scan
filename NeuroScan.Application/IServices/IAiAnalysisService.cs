@@ -2,20 +2,21 @@ namespace NeuroScan.Application.IServices;
 
 public interface IAiAnalysisService
 {
-    Task<DualModelAnalysisResponseDTO> AnalyzeMriScanAsync(string niiFilePath);
+    Task<SegResNetAnalysisResponseDTO> AnalyzeMriScanAsync(string niiFilePath);
+    Task<List<string>> GetRawSlicesAsync(string niiFilePath);
 }
 
-public class DualModelAnalysisResponseDTO
+public class SegResNetAnalysisResponseDTO
 {
     public bool Success { get; set; }
-    public ModelResultDTO Model1 { get; set; } = null!;
-    public ModelResultDTO Model2 { get; set; } = null!;
-    public ComparisonDTO Comparison { get; set; } = null!;
+    public SegResNetResultDTO Segresnet { get; set; } = null!;
+    public EpilepsyRiskDTO Epilepsy { get; set; } = null!;
+    public List<string> SegmentationSlices { get; set; } = new();
 }
 
-public class ModelResultDTO
+public class SegResNetResultDTO
 {
-    public string Name { get; set; } = string.Empty;
+    public string Name { get; set; } = "SegResNet";
     public double CsfVolume { get; set; }
     public double GmVolume { get; set; }
     public double WmVolume { get; set; }
@@ -23,35 +24,10 @@ public class ModelResultDTO
     public double ProcessingTime { get; set; }
 }
 
-public class ComparisonDTO
+public class EpilepsyRiskDTO
 {
-    public DiceScoresDTO DiceScores { get; set; } = null!;
-    public double DisagreementPercentage { get; set; }
-    public string RecommendedModel { get; set; } = string.Empty;
-    public double Confidence { get; set; }
-    public VolumeDifferencesDTO VolumeDifferences { get; set; } = null!;
+    public double RiskScore { get; set; }
+    public string RiskLevel { get; set; } = string.Empty;
+    public List<string> Factors { get; set; } = new();
 }
 
-public class DiceScoresDTO
-{
-    public double Csf { get; set; }
-    public double Gm { get; set; }
-    public double Wm { get; set; }
-    public double Average { get; set; }
-}
-
-public class VolumeDifferencesDTO
-{
-    public double Csf { get; set; }
-    public double Gm { get; set; }
-    public double Wm { get; set; }
-}
-
-// Legacy DTO for backward compatibility
-public class AiAnalysisResponseDTO
-{
-    public double CsfVolume { get; set; }
-    public double GmVolume { get; set; }
-    public double WmVolume { get; set; }
-    public double AsymmetryIndex { get; set; }
-}

@@ -53,6 +53,12 @@ export class MriService {
     );
   }
 
+    getMyPatient(): Observable<any> {
+      return this.http.get<any>(
+        `${this.apiUrl}/patient/my-patient`,
+        { headers: this.getHeaders() }
+      );
+    }
   getPatientScans(patientId: string): Observable<MriScanDetail[]> {
     return this.http.get<MriScanDetail[]>(
       `${this.apiUrl}/mriscan/patient/${patientId}`,
@@ -78,10 +84,68 @@ export class MriService {
     );
   }
 
+  getSegmentationImage(scanId: string): Observable<Blob> {
+    return this.http.get(
+      `${this.apiUrl}/mriscan/${scanId}/segmentation-image`,
+      { headers: this.getHeaders(), responseType: 'blob' }
+    );
+  }
+
+  getSegmentationSlice(scanId: string, sliceIndex: number): Observable<Blob> {
+    return this.http.get(
+      `${this.apiUrl}/mriscan/${scanId}/segmentation-image/${sliceIndex}`,
+      { headers: this.getHeaders(), responseType: 'blob' }
+    );
+  }
+
   getMyScans(): Observable<MriScanDetail[]> {
     return this.http.get<MriScanDetail[]>(
       `${this.apiUrl}/mriscan/my-scans`,
       { headers: this.getHeaders() }
+    );
+  }
+
+  getPendingReviewScans(): Observable<MriScanDetail[]> {
+    return this.http.get<MriScanDetail[]>(
+      `${this.apiUrl}/mriscan/pending-review`,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  getRawSliceCount(scanId: string): Observable<{ count: number }> {
+    return this.http.get<{ count: number }>(
+      `${this.apiUrl}/mriscan/${scanId}/raw-slice/count`,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  getRawSlice(scanId: string, sliceIndex: number): Observable<Blob> {
+    return this.http.get(
+      `${this.apiUrl}/mriscan/${scanId}/raw-slice/${sliceIndex}`,
+      { headers: this.getHeaders(), responseType: 'blob' }
+    );
+  }
+
+  submitReview(scanId: string, approved: boolean, notes: string): Observable<void> {
+    return this.http.post<void>(
+      `${this.apiUrl}/mriscan/${scanId}/review`,
+      { approved, notes },
+      { headers: this.getHeaders() }
+    );
+  }
+
+  saveCorrectedSlice(scanId: string, sliceIndex: number, base64Png: string): Observable<void> {
+    return this.http.post<void>(
+      `${this.apiUrl}/mriscan/${scanId}/corrected-slice/${sliceIndex}`,
+      { base64Png },
+      { headers: this.getHeaders() }
+    );
+  }
+
+  getCorrectedSlice(scanId: string, sliceIndex: number): Observable<Blob> {
+    return this.http.get(
+      `${this.apiUrl}/mriscan/${scanId}/corrected-slice/${sliceIndex}`,
+      { headers: this.getHeaders(), responseType: 'blob' }
     );
   }
 }

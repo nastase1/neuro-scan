@@ -28,7 +28,7 @@ export class LoginComponent {
   ) {
     // Redirect if already logged in
     if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/dashboard']);
+      this.router.navigate([this.authService.getHomeRoute()]);
     }
   }
 
@@ -44,7 +44,7 @@ export class LoginComponent {
     this.authService.login(this.loginRequest).subscribe({
       next: (response) => {
         if (response.success) {
-          this.router.navigate(['/dashboard']);
+          this.router.navigate([this.authService.getHomeRoute()]);
         } else {
           this.errorMessage = response.message || 'Login failed';
           this.isLoading = false;

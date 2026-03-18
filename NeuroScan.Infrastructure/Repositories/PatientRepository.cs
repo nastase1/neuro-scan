@@ -45,6 +45,14 @@ public class PatientRepository : IPatientRepository
             .FirstOrDefaultAsync(p => p.MedicalRecordNumber == mrn);
     }
 
+    public async Task<Patient?> GetByPatientUserIdAsync(Guid userId)
+    {
+        return await _context.Patients
+            .Where(p => p.DeletedAt == null && p.UserId == userId)
+            .Include(p => p.CreatedBy)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task AddAsync(Patient patient)
     {
         await _context.Patients.AddAsync(patient);

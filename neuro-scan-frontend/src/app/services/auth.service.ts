@@ -76,6 +76,24 @@ export class AuthService {
     return user?.role === 1; // Doctor role
   }
 
+  isAdmin(): boolean {
+    const user = this.getCurrentUser();
+    return user?.role === 2; // Admin role
+  }
+
+  isStandardUser(): boolean {
+    const user = this.getCurrentUser();
+    return user?.role === 0;
+  }
+
+  getHomeRoute(): string {
+    if (this.isAdmin()) {
+      return '/admin';
+    }
+
+    return '/dashboard';
+  }
+
   private setAuthData(token: string, user: User): void {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));

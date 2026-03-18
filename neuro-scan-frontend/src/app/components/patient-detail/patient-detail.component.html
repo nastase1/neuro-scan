@@ -441,6 +441,22 @@
             </button>
           </div>
         </div>
+
+        <div
+          *ngIf="
+            scan.doctorClinicalNotes || scan.analysisResult?.doctorReviewNotes
+          "
+          class="mt-4 p-4 rounded-xl border border-amber-500/25 bg-amber-500/10"
+        >
+          <p class="text-[11px] uppercase tracking-wide text-amber-300 mb-1">
+            Clinical Notes from Doctor
+          </p>
+          <p class="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed">
+            {{
+              scan.doctorClinicalNotes || scan.analysisResult?.doctorReviewNotes
+            }}
+          </p>
+        </div>
       </div>
     </div>
 

@@ -35,7 +35,7 @@ export class RegisterComponent {
   ) {
     // Redirect if already logged in
     if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/dashboard']);
+      this.router.navigate([this.authService.getHomeRoute()]);
     }
   }
 
@@ -63,7 +63,7 @@ export class RegisterComponent {
     this.authService.register(this.registerRequest).subscribe({
       next: (response) => {
         if (response.success) {
-          this.router.navigate(['/dashboard']);
+          this.router.navigate([this.authService.getHomeRoute()]);
         } else {
           this.errorMessage = response.message || 'Registration failed';
           this.isLoading = false;

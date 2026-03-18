@@ -98,11 +98,23 @@ export class NavComponent implements OnInit {
   }
 
   getUserRole(): string {
+    if (this.authService.isAdmin()) {
+      return 'Admin';
+    }
+
     return this.authService.isDoctor() ? 'Doctor' : 'User';
   }
 
   isDoctor(): boolean {
     return this.authService.isDoctor();
+  }
+
+  isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
+
+  getHomeRoute(): string {
+    return this.authService.getHomeRoute();
   }
 
   logout(): void {

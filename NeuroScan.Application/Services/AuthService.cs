@@ -76,6 +76,7 @@ public class AuthService : IAuthService
                 LastName = user.LastName,
                 DateOfBirth = DateTime.MinValue,
                 MedicalRecordNumber = mrn,
+                UserId = user.Id,
                 CreatedByUserId = assignedDoctorId.Value,
                 CreatedAt = DateTime.UtcNow
             };

@@ -181,7 +181,7 @@ public class MriScanService : IMriScanService
             mriScan.Status = ScanStatus.Processing;
             await mriScanRepository.UpdateAsync(mriScan);
 
-            // Step 1: Call Python AI service
+            // Step 1: Call Python AI service (SegResNet)
             _logger.LogInformation($"Calling AI service for scan {mriScan.Id}");
             var aiResult = await aiAnalysisService.AnalyzeMriScanAsync(mriScan.StoredFilePath);
 
@@ -206,28 +206,48 @@ public class MriScanService : IMriScanService
             _logger.LogInformation($"Generating medical report for scan {mriScan.Id}");
             var medicalReport = await openAiReportService.GenerateMedicalReportAsync(aiResult, patientContext);
 
-            // Step 4: Save analysis result (both models)
+            // Step 4: Save segmentation slices to disk
+            string? segImageDir = null;
+            int segSliceCount = 0;
+            if (aiResult.SegmentationSlices.Count > 0)
+            {
+                try
+                {
+                    var imgDir = Path.Combine(_uploadPath, "segmentation-images");
+                    Directory.CreateDirectory(imgDir);
+                    segImageDir = Path.Combine(imgDir, mriScan.Id.ToString());
+                    Directory.CreateDirectory(segImageDir);
+                    for (int i = 0; i < aiResult.SegmentationSlices.Count; i++)
+                    {
+                        var imgBytes = Convert.FromBase64String(aiResult.SegmentationSlices[i]);
+                        await File.WriteAllBytesAsync(Path.Combine(segImageDir, $"{i}.png"), imgBytes);
+                    }
+                    segSliceCount = aiResult.SegmentationSlices.Count;
+                }
+                catch (Exception imgEx)
+                {
+                    _logger.LogWarning(imgEx, $"Failed to save segmentation slices for scan {mriScan.Id}");
+                    segImageDir = null;
+                    segSliceCount = 0;
+                }
+            }
+
+            // Step 5: Save analysis result
             var analysisResult = new AnalysisResult
             {
                 Id = Guid.NewGuid(),
                 MriScanId = mriScan.Id,
-                // Model 1 (UNet) Results
-                CsfVolume = aiResult.Model1.CsfVolume,
-                GmVolume = aiResult.Model1.GmVolume,
-                WmVolume = aiResult.Model1.WmVolume,
-                AsymmetryIndex = aiResult.Model1.AsymmetryIndex,
-                // Model 2 (SegResNet) Results
-                CsfVolumeModel2 = aiResult.Model2.CsfVolume,
-                GmVolumeModel2 = aiResult.Model2.GmVolume,
-                WmVolumeModel2 = aiResult.Model2.WmVolume,
-                AsymmetryIndexModel2 = aiResult.Model2.AsymmetryIndex,
-                // Comparison Metrics
-                DiceScoreCsf = aiResult.Comparison.DiceScores.Csf,
-                DiceScoreGm = aiResult.Comparison.DiceScores.Gm,
-                DiceScoreWm = aiResult.Comparison.DiceScores.Wm,
-                DisagreementPercentage = aiResult.Comparison.DisagreementPercentage,
-                RecommendedModel = aiResult.Comparison.RecommendedModel,
-                ModelConfidence = aiResult.Comparison.Confidence,
+                // SegResNet volumetrics
+                CsfVolume = aiResult.Segresnet.CsfVolume,
+                GmVolume = aiResult.Segresnet.GmVolume,
+                WmVolume = aiResult.Segresnet.WmVolume,
+                AsymmetryIndex = aiResult.Segresnet.AsymmetryIndex,
+                // Epilepsy risk
+                EpilepsyRiskScore = aiResult.Epilepsy.RiskScore,
+                EpilepsyRiskLevel = aiResult.Epilepsy.RiskLevel,
+                // Segmentation slices
+                SegmentationImagePath = segImageDir,
+                SegmentationSliceCount = segSliceCount,
                 // Report
                 MedicalReportText = medicalReport,
                 AnalyzedAt = DateTime.UtcNow,
@@ -240,9 +260,9 @@ public class MriScanService : IMriScanService
             mriScan.Status = ScanStatus.Analyzed;
             await mriScanRepository.UpdateAsync(mriScan);
 
-            _logger.LogInformation($"Scan {mriScan.Id} processed successfully");
+            _logger.LogInformation($"Scan {mriScan.Id} processed successfully — Epilepsy risk: {aiResult.Epilepsy.RiskLevel}");
 
-            // Step 5: Email results to patient (if they have an email address)
+            // Step 6: Email results to patient (if they have an email address)
             if (!string.IsNullOrWhiteSpace(patient.Email))
             {
                 var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
@@ -252,20 +272,12 @@ public class MriScanService : IMriScanService
                     {
                         ScanDate = mriScan.UploadDate,
                         MedicalReport = medicalReport,
-                        CsfVolume = aiResult.Model1.CsfVolume,
-                        GmVolume = aiResult.Model1.GmVolume,
-                        WmVolume = aiResult.Model1.WmVolume,
-                        AsymmetryIndex = aiResult.Model1.AsymmetryIndex,
-                        CsfVolumeModel2 = aiResult.Model2.CsfVolume,
-                        GmVolumeModel2 = aiResult.Model2.GmVolume,
-                        WmVolumeModel2 = aiResult.Model2.WmVolume,
-                        AsymmetryIndexModel2 = aiResult.Model2.AsymmetryIndex,
-                        DiceScoreCsf = aiResult.Comparison.DiceScores.Csf,
-                        DiceScoreGm = aiResult.Comparison.DiceScores.Gm,
-                        DiceScoreWm = aiResult.Comparison.DiceScores.Wm,
-                        DisagreementPercentage = aiResult.Comparison.DisagreementPercentage,
-                        RecommendedModel = aiResult.Comparison.RecommendedModel,
-                        ModelConfidence = aiResult.Comparison.Confidence
+                        CsfVolume = aiResult.Segresnet.CsfVolume,
+                        GmVolume = aiResult.Segresnet.GmVolume,
+                        WmVolume = aiResult.Segresnet.WmVolume,
+                        AsymmetryIndex = aiResult.Segresnet.AsymmetryIndex,
+                        EpilepsyRiskScore = aiResult.Epilepsy.RiskScore,
+                        EpilepsyRiskLevel = aiResult.Epilepsy.RiskLevel
                     };
                     await emailService.SendScanResultsEmailAsync(
                         patient.Email,
@@ -308,10 +320,27 @@ public class MriScanService : IMriScanService
         var patient = await _patientRepository.GetByIdAsync(scan.PatientId);
         if (patient == null) return null;
 
-        // Check access: doctors can see all, regular users only their own patients
-        if (!isDoctor && patient.CreatedByUserId != userId) return null;
+        // Check access:
+        // - doctors can see scans for patients they created
+        // - standard users can only see scans for their linked patient record
+        if (isDoctor)
+        {
+            if (patient.CreatedByUserId != userId) return null;
+        }
+        else
+        {
+            if (patient.UserId != userId) return null;
+        }
 
         var analysisResult = await _analysisResultRepository.GetByMriScanIdAsync(scanId);
+
+        // Legacy repair: older analyses saved segmentation slices with inconsistent indexing/geometry.
+        // Regenerate once to align review-page Original vs AI slices.
+        if (analysisResult != null)
+        {
+            await EnsureSegmentationSlicesAlignedAsync(scan, analysisResult);
+            analysisResult = await _analysisResultRepository.GetByMriScanIdAsync(scanId);
+        }
 
         return new MriScanDetailDTO
         {
@@ -319,6 +348,7 @@ public class MriScanService : IMriScanService
             OriginalFileName = scan.OriginalFileName,
             UploadDate = scan.UploadDate,
             Status = scan.Status,
+            DoctorClinicalNotes = scan.DoctorClinicalNotes,
             Patient = new PatientBasicDTO
             {
                 Id = patient.Id,
@@ -327,35 +357,82 @@ public class MriScanService : IMriScanService
             },
             AnalysisResult = analysisResult != null ? new AnalysisResultDTO
             {
-                // Model 1 (UNet)
                 CsfVolume = analysisResult.CsfVolume,
                 GmVolume = analysisResult.GmVolume,
                 WmVolume = analysisResult.WmVolume,
                 AsymmetryIndex = analysisResult.AsymmetryIndex,
-                // Model 2 (SegResNet)
-                CsfVolumeModel2 = analysisResult.CsfVolumeModel2,
-                GmVolumeModel2 = analysisResult.GmVolumeModel2,
-                WmVolumeModel2 = analysisResult.WmVolumeModel2,
-                AsymmetryIndexModel2 = analysisResult.AsymmetryIndexModel2,
-                // Comparison metrics
-                DiceScoreCsf = analysisResult.DiceScoreCsf,
-                DiceScoreGm = analysisResult.DiceScoreGm,
-                DiceScoreWm = analysisResult.DiceScoreWm,
-                DisagreementPercentage = analysisResult.DisagreementPercentage,
-                RecommendedModel = analysisResult.RecommendedModel,
-                ModelConfidence = analysisResult.ModelConfidence,
-                // Report
+                EpilepsyRiskScore = analysisResult.EpilepsyRiskScore,
+                EpilepsyRiskLevel = analysisResult.EpilepsyRiskLevel,
+                SegmentationImagePath = analysisResult.SegmentationImagePath,
+                SegmentationSliceCount = analysisResult.SegmentationSliceCount,
                 MedicalReportText = analysisResult.MedicalReportText,
                 AnalyzedAt = analysisResult.AnalyzedAt
             } : null
         };
     }
 
-    public async Task<IEnumerable<MriScanDetailDTO>> GetScansByPatientIdAsync(Guid patientId, Guid doctorId)
+    private async Task EnsureSegmentationSlicesAlignedAsync(MriScan scan, AnalysisResult analysisResult)
     {
-        // Verify patient exists and doctor has access
+        // Current pipeline always produces full ROI depth (96) slices.
+        // If count is lower, this scan likely used older slice export logic.
+        if (analysisResult.SegmentationSliceCount >= 96 &&
+            !string.IsNullOrWhiteSpace(analysisResult.SegmentationImagePath) &&
+            Directory.Exists(analysisResult.SegmentationImagePath))
+        {
+            return;
+        }
+
+        try
+        {
+            var aiResult = await _aiAnalysisService.AnalyzeMriScanAsync(scan.StoredFilePath);
+            if (aiResult.SegmentationSlices.Count == 0)
+            {
+                return;
+            }
+
+            var imgDir = Path.Combine(_uploadPath, "segmentation-images");
+            Directory.CreateDirectory(imgDir);
+            var segDir = Path.Combine(imgDir, scan.Id.ToString());
+
+            if (Directory.Exists(segDir))
+            {
+                Directory.Delete(segDir, recursive: true);
+            }
+
+            Directory.CreateDirectory(segDir);
+            for (int i = 0; i < aiResult.SegmentationSlices.Count; i++)
+            {
+                var imgBytes = Convert.FromBase64String(aiResult.SegmentationSlices[i]);
+                await File.WriteAllBytesAsync(Path.Combine(segDir, $"{i}.png"), imgBytes);
+            }
+
+            analysisResult.SegmentationImagePath = segDir;
+            analysisResult.SegmentationSliceCount = aiResult.SegmentationSlices.Count;
+            analysisResult.UpdatedAt = DateTime.UtcNow;
+            await _analysisResultRepository.UpdateAsync(analysisResult);
+
+            _logger.LogInformation($"Regenerated aligned segmentation slices for legacy scan {scan.Id}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, $"Failed to regenerate segmentation slices for scan {scan.Id}");
+        }
+    }
+
+    public async Task<IEnumerable<MriScanDetailDTO>> GetScansByPatientIdAsync(Guid patientId, Guid requesterId, bool isDoctor = false)
+    {
+        // Verify patient exists and requester has access
         var patient = await _patientRepository.GetByIdAsync(patientId);
-        if (patient == null || patient.CreatedByUserId != doctorId)
+        if (patient == null)
+        {
+            throw new UnauthorizedAccessException("Patient not found or access denied");
+        }
+
+        var hasAccess = isDoctor
+            ? patient.CreatedByUserId == requesterId
+            : patient.UserId == requesterId;
+
+        if (!hasAccess)
         {
             throw new UnauthorizedAccessException("Patient not found or access denied");
         }
@@ -374,6 +451,7 @@ public class MriScanService : IMriScanService
                 OriginalFileName = scan.OriginalFileName,
                 UploadDate = scan.UploadDate,
                 Status = scan.Status,
+                DoctorClinicalNotes = scan.DoctorClinicalNotes,
                 Patient = new PatientBasicDTO
                 {
                     Id = patient.Id,
@@ -382,24 +460,14 @@ public class MriScanService : IMriScanService
                 },
                 AnalysisResult = analysisResult != null ? new AnalysisResultDTO
                 {
-                    // Model 1 (UNet)
                     CsfVolume = analysisResult.CsfVolume,
                     GmVolume = analysisResult.GmVolume,
                     WmVolume = analysisResult.WmVolume,
                     AsymmetryIndex = analysisResult.AsymmetryIndex,
-                    // Model 2 (SegResNet)
-                    CsfVolumeModel2 = analysisResult.CsfVolumeModel2,
-                    GmVolumeModel2 = analysisResult.GmVolumeModel2,
-                    WmVolumeModel2 = analysisResult.WmVolumeModel2,
-                    AsymmetryIndexModel2 = analysisResult.AsymmetryIndexModel2,
-                    // Comparison metrics
-                    DiceScoreCsf = analysisResult.DiceScoreCsf,
-                    DiceScoreGm = analysisResult.DiceScoreGm,
-                    DiceScoreWm = analysisResult.DiceScoreWm,
-                    DisagreementPercentage = analysisResult.DisagreementPercentage,
-                    RecommendedModel = analysisResult.RecommendedModel,
-                    ModelConfidence = analysisResult.ModelConfidence,
-                    // Report
+                    EpilepsyRiskScore = analysisResult.EpilepsyRiskScore,
+                    EpilepsyRiskLevel = analysisResult.EpilepsyRiskLevel,
+                    SegmentationImagePath = analysisResult.SegmentationImagePath,
+                    SegmentationSliceCount = analysisResult.SegmentationSliceCount,
                     MedicalReportText = analysisResult.MedicalReportText,
                     AnalyzedAt = analysisResult.AnalyzedAt
                 } : null
@@ -411,11 +479,11 @@ public class MriScanService : IMriScanService
 
     public async Task<IEnumerable<MriScanDetailDTO>> GetMyScansAsync(Guid userId)
     {
-        // Get all patients owned by this user (self-scans & doctor-created for them)
-        var patients = await _patientRepository.GetByUserIdAsync(userId);
+        // Get the patient record linked to this user account.
+        var patient = await _patientRepository.GetByPatientUserIdAsync(userId);
         var scanDetails = new List<MriScanDetailDTO>();
 
-        foreach (var patient in patients)
+        if (patient != null)
         {
             var scans = await _mriScanRepository.GetByPatientIdAsync(patient.Id);
 
@@ -429,6 +497,7 @@ public class MriScanService : IMriScanService
                     OriginalFileName = scan.OriginalFileName,
                     UploadDate = scan.UploadDate,
                     Status = scan.Status,
+                    DoctorClinicalNotes = scan.DoctorClinicalNotes,
                     Patient = new PatientBasicDTO
                     {
                         Id = patient.Id,
@@ -441,16 +510,10 @@ public class MriScanService : IMriScanService
                         GmVolume = analysisResult.GmVolume,
                         WmVolume = analysisResult.WmVolume,
                         AsymmetryIndex = analysisResult.AsymmetryIndex,
-                        CsfVolumeModel2 = analysisResult.CsfVolumeModel2,
-                        GmVolumeModel2 = analysisResult.GmVolumeModel2,
-                        WmVolumeModel2 = analysisResult.WmVolumeModel2,
-                        AsymmetryIndexModel2 = analysisResult.AsymmetryIndexModel2,
-                        DiceScoreCsf = analysisResult.DiceScoreCsf,
-                        DiceScoreGm = analysisResult.DiceScoreGm,
-                        DiceScoreWm = analysisResult.DiceScoreWm,
-                        DisagreementPercentage = analysisResult.DisagreementPercentage,
-                        RecommendedModel = analysisResult.RecommendedModel,
-                        ModelConfidence = analysisResult.ModelConfidence,
+                        EpilepsyRiskScore = analysisResult.EpilepsyRiskScore,
+                        EpilepsyRiskLevel = analysisResult.EpilepsyRiskLevel,
+                        SegmentationImagePath = analysisResult.SegmentationImagePath,
+                        SegmentationSliceCount = analysisResult.SegmentationSliceCount,
                         MedicalReportText = analysisResult.MedicalReportText,
                         AnalyzedAt = analysisResult.AnalyzedAt
                     } : null
@@ -509,6 +572,106 @@ public class MriScanService : IMriScanService
         }
 
         return summaries;
+    }
+
+    public async Task<int> GetRawSliceCountAsync(Guid scanId, Guid doctorId)
+    {
+        var scan = await _mriScanRepository.GetByIdAsync(scanId);
+        if (scan == null) return 0;
+
+        var analysisResult = await _analysisResultRepository.GetByMriScanIdAsync(scanId);
+        var expectedSliceCount = analysisResult?.SegmentationSliceCount ?? 0;
+
+        var rawDir = Path.Combine(_uploadPath, "raw-slices", scanId.ToString());
+
+        // Serve from cache if already generated
+        if (Directory.Exists(rawDir))
+        {
+            var cachedCount = Directory.GetFiles(rawDir, "*.png").Length;
+            if (expectedSliceCount == 0 || cachedCount == expectedSliceCount)
+            {
+                return cachedCount;
+            }
+
+            // Cache is stale (generated with older pipeline); regenerate.
+            Directory.Delete(rawDir, recursive: true);
+        }
+
+        // Generate: send the stored .nii to Python, save slices to disk
+        if (!File.Exists(scan.StoredFilePath)) return 0;
+
+        var slices = await _aiAnalysisService.GetRawSlicesAsync(scan.StoredFilePath);
+        if (slices.Count == 0) return 0;
+
+        Directory.CreateDirectory(rawDir);
+        for (int i = 0; i < slices.Count; i++)
+        {
+            var bytes = Convert.FromBase64String(slices[i]);
+            await File.WriteAllBytesAsync(Path.Combine(rawDir, $"{i}.png"), bytes);
+        }
+
+        return slices.Count;
+    }
+
+    public async Task<byte[]?> GetRawSliceAsync(Guid scanId, int sliceIndex, Guid doctorId)
+    {
+        var rawDir = Path.Combine(_uploadPath, "raw-slices", scanId.ToString());
+
+        // Generate if not cached
+        if (!Directory.Exists(rawDir))
+        {
+            var count = await GetRawSliceCountAsync(scanId, doctorId);
+            if (count == 0) return null;
+        }
+
+        var slicePath = Path.Combine(rawDir, $"{sliceIndex}.png");
+        if (!File.Exists(slicePath)) return null;
+
+        return await File.ReadAllBytesAsync(slicePath);
+    }
+
+    public async Task SubmitReviewAsync(Guid scanId, Guid doctorId, bool approved, string notes)
+    {
+        var scan = await _mriScanRepository.GetByIdAsync(scanId);
+        if (scan == null) throw new ArgumentException("Scan not found");
+
+        var analysisResult = await _analysisResultRepository.GetByMriScanIdAsync(scanId);
+        if (analysisResult == null) throw new InvalidOperationException("No analysis result for this scan");
+
+        analysisResult.DoctorApproved = approved;
+        analysisResult.DoctorReviewNotes = notes;
+        analysisResult.UpdatedAt = DateTime.UtcNow;
+        await _analysisResultRepository.UpdateAsync(analysisResult);
+
+        scan.DoctorClinicalNotes = notes;
+        scan.ReviewedByDoctorId = doctorId;
+        scan.ReviewedAt = DateTime.UtcNow;
+        scan.Status = ScanStatus.ReviewedByDoctor;
+        scan.UpdatedAt = DateTime.UtcNow;
+        await _mriScanRepository.UpdateAsync(scan);
+
+        _logger.LogInformation($"Doctor {doctorId} submitted review for scan {scanId} — approved: {approved}");
+    }
+
+    public async Task SaveCorrectedSliceAsync(Guid scanId, int sliceIndex, string base64Png, Guid doctorId)
+    {
+        var scan = await _mriScanRepository.GetByIdAsync(scanId);
+        if (scan == null) throw new ArgumentException("Scan not found");
+
+        var corrDir = Path.Combine(_uploadPath, "corrected-slices", scanId.ToString());
+        Directory.CreateDirectory(corrDir);
+
+        var imgBytes = Convert.FromBase64String(base64Png);
+        await File.WriteAllBytesAsync(Path.Combine(corrDir, $"{sliceIndex}.png"), imgBytes);
+
+        _logger.LogInformation($"Doctor {doctorId} saved corrected slice {sliceIndex} for scan {scanId}");
+    }
+
+    public async Task<byte[]?> GetCorrectedSliceAsync(Guid scanId, int sliceIndex, Guid doctorId)
+    {
+        var corrPath = Path.Combine(_uploadPath, "corrected-slices", scanId.ToString(), $"{sliceIndex}.png");
+        if (!File.Exists(corrPath)) return null;
+        return await File.ReadAllBytesAsync(corrPath);
     }
 
     private static int CalculateAge(DateTime dateOfBirth)

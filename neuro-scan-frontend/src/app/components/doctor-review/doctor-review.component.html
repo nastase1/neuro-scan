@@ -1,0 +1,513 @@
+<div
+  class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6"
+>
+  <!-- Header -->
+  <div class="max-w-screen-2xl mx-auto mb-6 flex items-center justify-between">
+    <div class="flex items-center gap-4">
+      <button
+        (click)="goBack()"
+        class="p-2 rounded-lg bg-slate-700/60 hover:bg-slate-700 text-gray-300 hover:text-white transition-all"
+      >
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
+      </button>
+      <div>
+        <h1 class="text-2xl font-bold text-white">Doctor Review</h1>
+        <p class="text-sm text-gray-400">Scan ID: {{ scanId }}</p>
+      </div>
+    </div>
+
+    <!-- Patient & risk summary -->
+    <div class="flex items-center gap-4" *ngIf="scanDetail()">
+      <div class="text-right">
+        <p class="text-white font-semibold">
+          {{ scanDetail()?.patient?.firstName }}
+          {{ scanDetail()?.patient?.lastName }}
+        </p>
+        <p class="text-xs text-gray-400">
+          Analyzed:
+          {{ scanDetail()?.analysisResult?.analyzedAt | date: "mediumDate" }}
+        </p>
+      </div>
+      <span
+        class="px-3 py-1 rounded-full text-sm font-bold"
+        [ngClass]="riskLevelClass"
+      >
+        {{ scanDetail()?.analysisResult?.epilepsyRiskLevel }} Risk ({{
+          scanDetail()?.analysisResult?.epilepsyRiskScore ?? 0
+            | number: "1.1-1"
+        }}%)
+      </span>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading()" class="flex items-center justify-center py-32">
+    <div class="flex flex-col items-center gap-4">
+      <div
+        class="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"
+      ></div>
+      <p class="text-gray-400">Loading scan data…</p>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error() && !isLoading()" class="max-w-screen-2xl mx-auto">
+    <div class="glass-card p-6 border-red-500/40 text-red-400">
+      {{ error() }}
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div
+    *ngIf="!isLoading()"
+    class="max-w-screen-2xl mx-auto grid grid-cols-1 xl:grid-cols-2 gap-6"
+  >
+    <!-- ===== LEFT: Raw Grayscale MRI ===== -->
+    <div class="glass-card p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div
+            class="w-10 h-10 bg-gradient-to-br from-slate-500 to-slate-600 rounded-lg flex items-center justify-center"
+          >
+            <svg
+              class="w-5 h-5 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2h-2"
+              />
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-white">Original MRI</h2>
+            <p class="text-xs text-gray-400">Grayscale — T1-weighted</p>
+          </div>
+        </div>
+        <span class="text-sm text-gray-400" *ngIf="sliceCount() > 0">
+          Slice {{ currentSliceIndex() + 1 }} / {{ sliceCount() }}
+        </span>
+      </div>
+
+      <div *ngIf="sliceCount() > 0">
+        <!-- Image -->
+        <div
+          class="relative bg-black rounded-xl overflow-hidden mb-4 aspect-square"
+        >
+          <div
+            *ngIf="isLoadingRawSlice()"
+            class="absolute inset-0 flex items-center justify-center bg-black/60 z-10"
+          >
+            <div
+              class="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"
+            ></div>
+          </div>
+          <img
+            *ngIf="rawSliceUrl()"
+            [src]="rawSliceUrl()"
+            alt="Raw MRI slice"
+            class="w-full h-full object-contain"
+          />
+          <div
+            *ngIf="!rawSliceUrl()"
+            class="w-full h-full flex items-center justify-center text-gray-600 text-sm"
+          >
+            No slice available
+          </div>
+        </div>
+
+        <!-- Synchronized slice slider (controls both views) -->
+        <div class="space-y-2">
+          <input
+            type="range"
+            min="0"
+            [max]="sliceCount() - 1"
+            [value]="currentSliceIndex()"
+            (input)="loadSlice(+$any($event.target).value)"
+            class="w-full h-2 appearance-none rounded-full bg-slate-700 accent-cyan-500 cursor-pointer"
+          />
+          <div class="flex justify-between text-xs text-gray-500">
+            <span>0</span><span>{{ sliceCount() - 1 }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RIGHT: AI Segmentation + Paint ===== -->
+    <div class="glass-card p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div
+            class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center"
+          >
+            <svg
+              class="w-5 h-5 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15.232 5.232l3.536 3.536M9 11l6 6M3 21h18"
+              />
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-white">AI Segmentation</h2>
+            <p class="text-xs text-gray-400">
+              Paint corrections on the overlay
+            </p>
+          </div>
+        </div>
+        <span class="text-sm text-gray-400" *ngIf="sliceCount() > 0">
+          Slice {{ currentSliceIndex() + 1 }} / {{ sliceCount() }}
+        </span>
+      </div>
+
+      <div *ngIf="sliceCount() > 0">
+        <!-- Paint tools -->
+        <div
+          class="flex flex-wrap items-center gap-3 mb-4 p-3 bg-slate-800/60 rounded-xl border border-slate-700/60"
+        >
+          <!-- Brush colors -->
+          <div class="flex gap-2">
+            <button
+              *ngFor="let c of brushColors"
+              (click)="selectedColor = c"
+              [title]="c.label"
+              class="w-8 h-8 rounded-full border-2 transition-all hover:scale-110"
+              [style.background-color]="c.color"
+              [class.border-white]="selectedColor.label === c.label"
+              [class.border-transparent]="selectedColor.label !== c.label"
+              [class.opacity-50]="c.label === 'Erase'"
+            >
+              <span *ngIf="c.label === 'Erase'" class="text-white text-xs"
+                >✕</span
+              >
+            </button>
+          </div>
+
+          <div class="h-6 w-px bg-slate-700"></div>
+
+          <!-- Pixel mode -->
+          <button
+            (click)="pixelPerfect.set(!pixelPerfect())"
+            class="px-3 py-1 text-xs rounded-lg border transition-all"
+            [class.border-cyan-500]="pixelPerfect()"
+            [class.text-cyan-300]="pixelPerfect()"
+            [class.bg-cyan-500/10]="pixelPerfect()"
+            [class.border-slate-600]="!pixelPerfect()"
+            [class.text-gray-300]="!pixelPerfect()"
+          >
+            {{ pixelPerfect() ? "Pixel Brush" : "Smooth Brush" }}
+          </button>
+
+          <div class="h-6 w-px bg-slate-700"></div>
+
+          <!-- Brush size -->
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400">Size</span>
+            <input
+              type="range"
+              min="1"
+              max="40"
+              [value]="brushSize()"
+              (input)="brushSize.set(+$any($event.target).value)"
+              class="w-20 accent-cyan-500 cursor-pointer"
+            />
+            <span class="text-xs text-gray-300 w-6">{{ brushSize() }}</span>
+          </div>
+
+          <div class="h-6 w-px bg-slate-700"></div>
+
+          <!-- Clear / Save slice -->
+          <button
+            (click)="clearPaintCanvas()"
+            class="px-3 py-1 text-xs rounded-lg bg-slate-700 text-gray-300 hover:bg-slate-600 transition-all"
+          >
+            Clear
+          </button>
+          <button
+            (click)="saveCurrentSlice()"
+            [disabled]="!sliceDirty() || isSavingSlice()"
+            class="px-3 py-1 text-xs rounded-lg font-semibold transition-all"
+            [class.bg-cyan-600]="sliceDirty() && !isSavingSlice()"
+            [class.text-white]="sliceDirty() && !isSavingSlice()"
+            [class.hover:bg-cyan-500]="sliceDirty() && !isSavingSlice()"
+            [class.bg-slate-700]="!sliceDirty() || isSavingSlice()"
+            [class.text-gray-500]="!sliceDirty() || isSavingSlice()"
+            [class.cursor-not-allowed]="!sliceDirty() || isSavingSlice()"
+          >
+            {{
+              isSavingSlice()
+                ? "Saving…"
+                : sliceSaveSuccess()
+                  ? "✓ Saved"
+                  : "Save Slice"
+            }}
+          </button>
+
+          <!-- Selected label -->
+          <span
+            class="ml-auto text-xs font-medium px-2 py-1 rounded-full"
+            [style.background-color]="selectedColor.color + '33'"
+            [style.color]="selectedColor.color"
+          >
+            {{ selectedColor.label }}
+          </span>
+        </div>
+
+        <!-- Canvas + image -->
+        <div
+          #paintContainer
+          class="paint-container bg-black rounded-xl overflow-hidden border border-slate-700/60 mb-4 aspect-square"
+          [class.pan-active]="isPanning"
+          (mousedown)="onPanStart($event)"
+          (mousemove)="onPanMove($event)"
+          (mouseup)="onPanEnd()"
+          (mouseleave)="onPanEnd()"
+          (contextmenu)="onSegmentationContextMenu($event)"
+          (wheel)="onSegmentationWheel($event)"
+        >
+          <div
+            class="seg-zoom-wrapper"
+            [style.transform]="
+              'translate(' +
+              panX() +
+              'px, ' +
+              panY() +
+              'px) scale(' +
+              zoom() +
+              ')'
+            "
+          >
+            <img
+              *ngIf="segSliceUrl()"
+              [src]="segSliceUrl()"
+              alt="Segmentation slice"
+              (load)="initCanvas($event)"
+              class="w-full h-full object-contain segmentation-image"
+            />
+            <canvas
+              #paintCanvas
+              class="paint-canvas"
+              (mousedown)="onMouseDown($event)"
+              (mousemove)="onMouseMove($event)"
+              (mouseup)="onMouseUp()"
+              (mouseleave)="onMouseLeave()"
+            >
+            </canvas>
+          </div>
+        </div>
+
+        <p class="text-[11px] text-gray-500 mb-4">
+          Scroll to zoom, right-click drag to pan ({{
+            zoom() | number: "1.0-1"
+          }}x)
+        </p>
+
+        <!-- Slice legend -->
+        <div class="flex gap-4 text-xs text-gray-400 mb-4">
+          <span class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-full inline-block bg-blue-400"></span
+            >CSF
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-full inline-block bg-pink-400"></span
+            >Gray Matter
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span
+              class="w-3 h-3 rounded-full inline-block bg-emerald-400"
+            ></span
+            >White Matter
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-full inline-block bg-orange-500"></span
+            >Tumor/Lesion
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- /grid -->
+
+  <!-- ===== Review Form ===== -->
+  <div *ngIf="!isLoading()" class="max-w-screen-2xl mx-auto mt-6">
+    <div class="glass-card p-6">
+      <div class="flex items-center gap-3 mb-6">
+        <div
+          class="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center"
+        >
+          <svg
+            class="w-5 h-5 text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-white">Submit Review</h2>
+          <p class="text-xs text-gray-400">
+            Approve or reject the AI analysis and add clinical notes
+          </p>
+        </div>
+      </div>
+
+      <!-- Success state -->
+      <div
+        *ngIf="submitSuccess()"
+        class="flex items-center gap-3 p-4 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-400 mb-4"
+      >
+        <svg
+          class="w-6 h-6 flex-shrink-0"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M5 13l4 4L19 7"
+          />
+        </svg>
+        <div>
+          <p class="font-semibold">Review submitted successfully!</p>
+          <p class="text-sm opacity-80">
+            The scan has been marked as reviewed.
+          </p>
+        </div>
+        <button
+          (click)="goBack()"
+          class="ml-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg transition-all"
+        >
+          Back to Dashboard
+        </button>
+      </div>
+
+      <div *ngIf="!submitSuccess()">
+        <!-- Approve / Reject -->
+        <div class="flex gap-4 mb-6">
+          <button
+            (click)="setApproval(true)"
+            class="flex-1 py-4 rounded-xl border-2 font-bold text-lg transition-all"
+            [class.border-emerald-500]="reviewApproved() === true"
+            [class.bg-emerald-500/20]="reviewApproved() === true"
+            [class.text-emerald-400]="reviewApproved() === true"
+            [class.border-slate-700]="reviewApproved() !== true"
+            [class.text-gray-400]="reviewApproved() !== true"
+            [class.hover:border-emerald-700]="reviewApproved() !== true"
+          >
+            <svg
+              class="w-6 h-6 inline mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+            Approve AI Results
+          </button>
+          <button
+            (click)="setApproval(false)"
+            class="flex-1 py-4 rounded-xl border-2 font-bold text-lg transition-all"
+            [class.border-red-500]="reviewApproved() === false"
+            [class.bg-red-500/20]="reviewApproved() === false"
+            [class.text-red-400]="reviewApproved() === false"
+            [class.border-slate-700]="reviewApproved() !== false"
+            [class.text-gray-400]="reviewApproved() !== false"
+            [class.hover:border-red-800]="reviewApproved() !== false"
+          >
+            <svg
+              class="w-6 h-6 inline mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+            Reject / Override
+          </button>
+        </div>
+
+        <!-- Notes -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-300 mb-2">
+            Clinical Notes <span class="text-gray-500">(optional)</span>
+          </label>
+          <textarea
+            [ngModel]="reviewNotes()"
+            (ngModelChange)="reviewNotes.set($event)"
+            rows="4"
+            placeholder="Add your clinical observations, corrections, or recommendations…"
+            class="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
+          >
+          </textarea>
+        </div>
+
+        <!-- Error -->
+        <div
+          *ngIf="submitError()"
+          class="mb-4 p-3 bg-red-500/20 border border-red-500/40 rounded-lg text-red-400 text-sm"
+        >
+          {{ submitError() }}
+        </div>
+
+        <button
+          (click)="submitReview()"
+          [disabled]="isSubmitting() || reviewApproved() === null"
+          class="w-full py-3 rounded-xl font-bold text-lg transition-all"
+          [class.bg-gradient-to-r]="reviewApproved() !== null"
+          [class.from-cyan-500]="reviewApproved() !== null"
+          [class.to-teal-500]="reviewApproved() !== null"
+          [class.text-white]="reviewApproved() !== null"
+          [class.hover:shadow-lg]="reviewApproved() !== null"
+          [class.hover:shadow-cyan-500/40]="reviewApproved() !== null"
+          [class.bg-slate-700]="reviewApproved() === null"
+          [class.text-gray-500]="reviewApproved() === null"
+          [class.cursor-not-allowed]="
+            reviewApproved() === null || isSubmitting()
+          "
+        >
+          {{ isSubmitting() ? "Submitting…" : "Submit Review" }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -23,9 +23,37 @@ public static class DatabaseSeeder
         if (existingDoctors.Count > 0)
             await context.SaveChangesAsync();
 
-        if (await context.Users.AnyAsync())
+        // Always ensure the default admin account exists and has the Admin role.
+        var adminUser = await context.Users
+            .FirstOrDefaultAsync(u => u.DeletedAt == null && u.Email.ToLower() == "admin@neuroscan.com");
+
+        if (adminUser == null)
         {
-            return; // Database already seeded
+            adminUser = new User
+            {
+                Id = Guid.NewGuid(),
+                FirstName = "Super",
+                LastName = "Admin",
+                Email = "admin@neuroscan.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
+                Role = UserRole.Admin,
+                CreatedAt = DateTime.UtcNow
+            };
+            await context.Users.AddAsync(adminUser);
+            await context.SaveChangesAsync();
+        }
+        else if (adminUser.Role != UserRole.Admin)
+        {
+            adminUser.Role = UserRole.Admin;
+            adminUser.FirstName = string.IsNullOrWhiteSpace(adminUser.FirstName) ? "Super" : adminUser.FirstName;
+            adminUser.LastName = string.IsNullOrWhiteSpace(adminUser.LastName) ? "Admin" : adminUser.LastName;
+            adminUser.UpdatedAt = DateTime.UtcNow;
+            await context.SaveChangesAsync();
+        }
+
+        if (await context.Users.AnyAsync(u => u.Role != UserRole.Admin))
+        {
+            return; // Test users already seeded
         }
 
         // Create test users

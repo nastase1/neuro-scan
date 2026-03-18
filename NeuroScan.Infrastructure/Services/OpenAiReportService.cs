@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using NeuroScan.Application.IServices;
@@ -17,39 +17,39 @@ public class OpenAiReportService : IOpenAiReportService
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
     }
 
-    public async Task<string> GenerateMedicalReportAsync(DualModelAnalysisResponseDTO analysisData, PatientContextDTO patientContext)
+    public async Task<string> GenerateMedicalReportAsync(SegResNetAnalysisResponseDTO analysisData, PatientContextDTO patientContext)
     {
-        // Modificăm System Prompt-ul pentru a include expertiza în epilepsie
-        var systemPrompt = @"You are a specialized neuroradiology AI assistant. 
-Your goal is to generate a clinical report focusing on structural biomarkers associated with epilepsy, such as regional atrophy or significant hemispheric asymmetry.
-You will compare data from two segmentation models (UNet and SegResNet).
-Analyze Gray Matter (GM), White Matter (WM), and Cerebrospinal Fluid (CSF) volumes.
-Pay special attention to the Brain Asymmetry Index and Gray Matter volume discrepancies, as these can indicate potential epileptogenic zones or hippocampal sclerosis.
-IMPORTANT: Provide a clinical correlation section regarding epilepsy risk, but maintain a professional tone, noting that findings must be correlated with EEG and clinical symptoms.";
+        var systemPrompt = @"You are a specialized neuroradiology AI assistant with expertise in epilepsy neuroimaging.
+Your role is to analyze brain MRI volumetric data produced by SegResNet segmentation and generate a structured clinical report.
+Focus on structural biomarkers associated with epilepsy: hemispheric asymmetry, gray matter volume loss, and CSF/GM ratio.
+Key biomarkers to assess:
+- Brain Asymmetry Index > 5% may indicate focal cortical dysplasia, hippocampal sclerosis, or an epileptogenic zone.
+- Reduced gray matter volume may indicate cortical atrophy.
+- Elevated CSF relative to brain tissue suggests parenchymal volume loss.
+Always maintain a professional clinical tone and emphasize that findings must be correlated with EEG, clinical history, and neurological examination.";
 
-        var comparisonText = analysisData.Comparison.DisagreementPercentage < 5
-            ? $"The models show excellent agreement ({analysisData.Comparison.Confidence:F1}% confidence)."
-            : $"The models show a discrepancy of {analysisData.Comparison.DisagreementPercentage:F1}%. Higher caution is advised for focal asymmetry detection.";
+        var riskFactorsText = string.Join("\n- ", analysisData.Epilepsy.Factors);
 
-        // Îmbogățim User Prompt-ul cu instrucțiuni specifice pentru epilepsie
         var userPrompt = $@"Patient: {patientContext.PatientName}, Age: {patientContext.Age}
 Scan Date: {patientContext.ScanDate:yyyy-MM-dd}
 
-=== DUAL-MODEL ANALYSIS RESULTS ===
-Model 1 ({analysisData.Model1.Name}): GM: {analysisData.Model1.GmVolume:F2}cm³, WM: {analysisData.Model1.WmVolume:F2}cm³, Asymmetry Index: {analysisData.Model1.AsymmetryIndex:F4}
-Model 2 ({analysisData.Model2.Name}): GM: {analysisData.Model2.GmVolume:F2}cm³, WM: {analysisData.Model2.WmVolume:F2}cm³, Asymmetry Index: {analysisData.Model2.AsymmetryIndex:F4}
+=== SEGRESNET VOLUMETRIC ANALYSIS ===
+CSF Volume:          {analysisData.Segresnet.CsfVolume:F2} cm3
+Gray Matter Volume:  {analysisData.Segresnet.GmVolume:F2} cm3
+White Matter Volume: {analysisData.Segresnet.WmVolume:F2} cm3
+Asymmetry Index:     {analysisData.Segresnet.AsymmetryIndex:F4}%
 
-=== COMPARISON DATA ===
-Dice Scores (GM): {analysisData.Comparison.DiceScores.Gm:F4}
-Volume Differences (GM): {analysisData.Comparison.VolumeDifferences.Gm:F2} cm³
-Recommended Model: {analysisData.Comparison.RecommendedModel}
+=== AUTOMATED EPILEPSY RISK ASSESSMENT ===
+Risk Level: {analysisData.Epilepsy.RiskLevel} ({analysisData.Epilepsy.RiskScore:F1}/100)
+Detected factors:
+- {riskFactorsText}
 
-Please generate a structured report including:
-1. SUMMARY OF VOLUMETRIC FINDINGS: (Focus on Gray Matter and Asymmetry).
-2. ASYMMETRY ANALYSIS: Does the Brain Asymmetry Index ({analysisData.Model1.AsymmetryIndex:F4}) suggest potential focal cortical dysplasia or hippocampal issues?
-3. EPILEPSY CORRELATION: Based on the volumetric data and asymmetry, identify if there are structural patterns consistent with epilepsy (e.g., significant GM loss or abnormal asymmetry).
-4. RELIABILITY: Comment on the agreement between {analysisData.Model1.Name} and {analysisData.Model2.Name}.
-5. CLINICAL RECOMMENDATION: Suggest if further targeted imaging (like 3T MRI with epilepsy protocol) or EEG correlation is warranted.";
+Please generate a structured clinical report with the following sections:
+1. VOLUMETRIC FINDINGS
+2. ASYMMETRY ANALYSIS
+3. EPILEPSY RISK ASSESSMENT
+4. CLINICAL RECOMMENDATION
+5. DISCLAIMER";
 
         var requestBody = new
         {
