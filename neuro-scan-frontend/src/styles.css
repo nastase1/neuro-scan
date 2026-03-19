@@ -2,23 +2,102 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Card Styles */
+:root {
+  --ns-bg-0: #050a14;
+  --ns-bg-1: #0d1830;
+  --ns-bg-2: #0b1324;
+  --ns-surface: rgba(9, 16, 31, 0.84);
+  --ns-surface-2: rgba(15, 23, 42, 0.84);
+  --ns-border: rgba(100, 116, 139, 0.42);
+  --ns-border-strong: rgba(56, 189, 248, 0.4);
+  --ns-cyan: #22d3ee;
+  --ns-text-soft: #94a3b8;
+}
+
+@layer base {
+  body {
+    @apply text-gray-100 antialiased;
+    font-family: Manrope, "Segoe UI", system-ui, sans-serif;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 88% 8%, rgba(56, 189, 248, 0.14), transparent 26%),
+      radial-gradient(circle at 11% 86%, rgba(251, 191, 36, 0.1), transparent 24%),
+      linear-gradient(145deg, var(--ns-bg-0) 0%, var(--ns-bg-1) 50%, var(--ns-bg-2) 100%);
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    transition: all 0.22s ease;
+  }
+
+  input,
+  select,
+  textarea {
+    border-color: var(--ns-border) !important;
+    background: rgba(8, 15, 30, 0.78) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: rgba(34, 211, 238, 0.55) !important;
+    box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.18) !important;
+  }
+}
+
 @layer utilities {
   .glass-card {
-    @apply bg-slate-800 border border-slate-700 rounded-2xl;
+    @apply rounded-2xl border;
+    background: linear-gradient(180deg, var(--ns-surface) 0%, var(--ns-surface-2) 100%);
+    border-color: var(--ns-border);
+    box-shadow: 0 14px 34px rgba(2, 6, 23, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(8px);
   }
-  
+
   .glass-card-hover {
-    @apply transition-all duration-300 hover:bg-slate-700 hover:shadow-2xl hover:shadow-black/40;
+    @apply transition-all duration-300;
   }
-  
+
+  .glass-card-hover:hover {
+    border-color: var(--ns-border-strong);
+    transform: translateY(-1px);
+    box-shadow: 0 20px 36px rgba(2, 6, 23, 0.45), 0 0 0 1px rgba(34, 211, 238, 0.18);
+  }
+
   .glow-text {
-    text-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+    text-shadow: 0 0 24px rgba(34, 211, 238, 0.45);
   }
-  
+
   .glow-border {
-    box-shadow: 0 0 30px rgba(6, 182, 212, 0.3), inset 0 0 20px rgba(6, 182, 212, 0.1);
+    box-shadow: 0 0 34px rgba(34, 211, 238, 0.26), inset 0 0 18px rgba(34, 211, 238, 0.1);
   }
+}
+
+/* Apply premium page atmosphere to existing screen wrappers without rewriting each template. */
+.min-h-screen.bg-gradient-to-br.from-slate-900.via-slate-800.to-slate-900 {
+  position: relative;
+  font-size: 1.04rem;
+  background:
+    radial-gradient(circle at 90% 4%, rgba(34, 211, 238, 0.14), transparent 28%),
+    radial-gradient(circle at 6% 82%, rgba(245, 158, 11, 0.1), transparent 22%),
+    linear-gradient(145deg, #050a14 0%, #0d1830 52%, #0b1324 100%) !important;
+}
+
+/* Common tab-like buttons (admin tabs, filters, toggles) */
+button[class*='rounded'][class*='px-'][class*='py-'] {
+  letter-spacing: 0.01em;
+}
+
+app-nav .text-sm {
+  font-size: 0.95rem;
+}
+
+app-nav .text-xs {
+  font-size: 0.82rem;
 }
 
 /* Custom Scrollbar */
@@ -27,21 +106,119 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(15, 23, 42, 0.55);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(6, 182, 212, 0.3);
+  background: rgba(34, 211, 238, 0.32);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(6, 182, 212, 0.5);
+  background: rgba(34, 211, 238, 0.54);
 }
 
-/* Global Body Styles */
-body {
-  @apply bg-slate-900 text-gray-100 font-sans antialiased;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  min-height: 100vh;
+/* Admin area premium harmonization */
+app-admin .admin-shell {
+  background: transparent !important;
+  color: #e2e8f0;
+  font-family: Manrope, "Segoe UI", sans-serif !important;
+}
+
+app-admin .content {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+app-admin .page-header h1 {
+  color: #f8fafc;
+  letter-spacing: -0.01em;
+}
+
+app-admin .page-header p {
+  color: #94a3b8;
+}
+
+app-admin .overview-hero,
+app-admin .insight-card,
+app-admin .stat-card,
+app-admin .table-card,
+app-admin .doctor-card,
+app-admin .modal {
+  background: linear-gradient(180deg, rgba(9, 16, 31, 0.84) 0%, rgba(15, 23, 42, 0.84) 100%) !important;
+  border-color: rgba(100, 116, 139, 0.42) !important;
+  box-shadow: 0 14px 34px rgba(2, 6, 23, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+app-admin .overview-hero {
+  background:
+    radial-gradient(circle at 89% 12%, rgba(56, 189, 248, 0.14), transparent 34%),
+    radial-gradient(circle at 10% 84%, rgba(245, 158, 11, 0.12), transparent 30%),
+    linear-gradient(180deg, rgba(9, 16, 31, 0.88) 0%, rgba(15, 23, 42, 0.86) 100%) !important;
+}
+
+app-admin .hero-chip,
+app-admin .ds-chip,
+app-admin .loading-chip {
+  border-color: rgba(100, 116, 139, 0.46) !important;
+  background: rgba(15, 23, 42, 0.8) !important;
+  color: #cbd5e1 !important;
+}
+
+app-admin .search-input,
+app-admin .filter-select,
+app-admin .modal-body input,
+app-admin .modal-body select {
+  background: rgba(8, 15, 30, 0.8) !important;
+  border-color: rgba(100, 116, 139, 0.45) !important;
+}
+
+app-admin .search-input:focus,
+app-admin .filter-select:focus,
+app-admin .modal-body input:focus,
+app-admin .modal-body select:focus {
+  border-color: rgba(34, 211, 238, 0.55) !important;
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.18) !important;
+}
+
+app-admin .data-table th {
+  background: rgba(5, 10, 20, 0.78) !important;
+  color: #94a3b8 !important;
+}
+
+app-admin .data-table tr:hover td {
+  background: rgba(7, 16, 30, 0.78) !important;
+}
+
+app-admin .btn-primary {
+  background: linear-gradient(135deg, #22d3ee, #06b6d4) !important;
+  color: #06202a !important;
+  font-weight: 700;
+}
+
+app-admin .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #67e8f9, #22d3ee) !important;
+}
+
+app-admin .btn-secondary {
+  border-color: rgba(100, 116, 139, 0.48) !important;
+  color: #cbd5e1 !important;
+}
+
+app-admin .btn-secondary:hover {
+  border-color: rgba(34, 211, 238, 0.5) !important;
+  color: #e2e8f0 !important;
+}
+
+/* Premium tab treatment for admin links in top nav */
+a[routerLink="/admin"] {
+  border: 1px solid rgba(100, 116, 139, 0.38);
+  background: rgba(15, 23, 42, 0.66);
+}
+
+a[routerLink="/admin"].bg-slate-600,
+a[routerLink="/admin"].text-cyan-400 {
+  border-color: rgba(34, 211, 238, 0.64) !important;
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.25), rgba(34, 211, 238, 0.12)) !important;
+  color: #a5f3fc !important;
 }

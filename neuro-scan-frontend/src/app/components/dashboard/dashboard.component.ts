@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, ElementRef, ViewChild, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -26,6 +26,7 @@ interface DashboardStatCard {
 export class DashboardComponent implements OnInit, OnDestroy {
   readonly Math = Math;
   currentUser: User | null = null;
+  @ViewChild('patientDropdownWrapper') patientDropdownWrapper?: ElementRef<HTMLDivElement>;
   
   // Upload states - using signals for zoneless change detection
   isDragging = signal(false);
@@ -55,7 +56,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   get selectedPatientLabel(): string {
     const p = this.availablePatients().find(p => p.id === this.selectedPatientId());
-    return p ? `${p.firstName} ${p.lastName} — MRN: ${p.medicalRecordNumber}` : 'Select a patient...';
+    return p ? `${p.firstName} ${p.lastName} — MRI: ${p.medicalRecordNumber}` : 'Select Patient';
   }
 
   selectPatient(patientId: string): void {
@@ -77,6 +78,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
   closePatientDropdown(): void {
     this.isPatientDropdownOpen.set(false);
     this.patientSearchQuery.set('');
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.isPatientDropdownOpen()) {
+      return;
+    }
+
+    const target = event.target as Node;
+    if (this.patientDropdownWrapper && !this.patientDropdownWrapper.nativeElement.contains(target)) {
+      this.closePatientDropdown();
+    }
   }
   showPatientSelector = false;
   
@@ -186,10 +199,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       next: (patients) => {
         console.log('Patients loaded:', patients.length, patients);
         this.availablePatients.set(patients);
-        if (patients.length > 0) {
-          this.selectedPatientId.set(patients[0].id);
-          console.log('Selected patient:', patients[0].id);
-        }
       },
       error: (error) => {
         console.error('Failed to load patients:', error);

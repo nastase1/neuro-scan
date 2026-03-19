@@ -1,172 +1,249 @@
-<div class="min-h-screen home-shell p-6">
-  <div class="max-w-7xl mx-auto">
+<div class="min-h-screen home-shell p-6 lg:p-8">
+  <div class="max-w-7xl mx-auto space-y-7">
     <section
-      class="hero-panel rounded-3xl p-8 md:p-10 mb-8 border border-cyan-400/25 relative overflow-hidden"
+      class="premium-hero rounded-[1.8rem] p-7 md:p-10 relative overflow-hidden"
     >
-      <div class="orb orb-a"></div>
-      <div class="orb orb-b"></div>
+      <div class="hero-glow hero-glow-a"></div>
+      <div class="hero-glow hero-glow-b"></div>
+
       <div
-        class="relative z-10 flex flex-col lg:flex-row lg:items-center gap-8"
+        class="relative z-10 grid grid-cols-1 xl:grid-cols-5 gap-8 items-center"
       >
-        <div class="lg:w-7/12">
-          <p
-            class="text-[11px] uppercase tracking-[0.2em] text-cyan-300/80 mb-3"
-          >
-            NeuroScan Platform
-          </p>
-          <h1
-            class="text-4xl md:text-5xl font-black text-white leading-tight mb-4"
-          >
+        <div class="xl:col-span-3">
+          <p class="eyebrow">NeuroScan Interpretation Suite</p>
+          <h1 class="hero-title">
             {{
               authService.isDoctor()
-                ? "Clinical Mission Control"
-                : "My Brain Health Timeline"
+                ? "MRI Triage Console"
+                : "Personal MRI Interpretation Portal"
             }}
           </h1>
-          <p
-            class="text-gray-200/90 text-base md:text-lg leading-relaxed max-w-2xl"
-          >
+          <p class="hero-subtitle">
             {{
               authService.isDoctor()
-                ? "Start your session with triage visibility, priority queues, and one-click access to scan analysis and review."
-                : "Start your session with a clear overview of your scans, progress indicators, and instant access to reports."
+                ? "Structured volumetrics, risk stratification, and clinical workflow in one premium command view."
+                : "Understand your MRI journey with physician-reviewed insights, trends, and clinically framed explanations."
             }}
           </p>
 
           <div class="flex flex-wrap gap-3 mt-6">
-            <a
-              routerLink="/dashboard"
-              class="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-semibold transition-all"
+            <a routerLink="/dashboard" class="btn-prime"
+              >Open Analysis Workspace</a
             >
-              Open Analysis Workspace
-            </a>
             <a
               *ngIf="authService.isDoctor()"
               routerLink="/patients"
-              class="px-5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-white font-semibold border border-slate-600 transition-all"
+              class="btn-secondary"
+              >Manage Patients</a
             >
-              Manage Patients
-            </a>
             <a
               *ngIf="authService.isStandardUser()"
               routerLink="/scan-history"
-              class="px-5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-white font-semibold border border-slate-600 transition-all"
+              class="btn-secondary"
+              >Open Scan History</a
             >
-              Open Scan History
-            </a>
           </div>
         </div>
 
-        <div class="lg:w-5/12 grid grid-cols-2 gap-3 w-full">
-          <div class="metric-card">
-            <p class="metric-label">Total Scans</p>
-            <p class="metric-value">{{ scans().length }}</p>
-          </div>
-          <div
-            class="metric-card"
-            *ngIf="authService.isDoctor(); else reviewedTpl"
-          >
-            <p class="metric-label">Pending Reviews</p>
-            <p class="metric-value text-amber-300">
-              {{ pendingReviewCount() }}
-            </p>
-          </div>
-          <ng-template #reviewedTpl>
-            <div class="metric-card">
-              <p class="metric-label">Reviewed</p>
-              <p class="metric-value text-emerald-300">{{ reviewedCount }}</p>
+        <div class="xl:col-span-2">
+          <div class="signal-board">
+            <div class="signal-header">
+              <span class="signal-title">Interpretation Signal</span>
+              <span
+                class="signal-badge"
+                [ngClass]="getRiskTone(latestRiskLevel)"
+                >{{ latestRiskLevel }}</span
+              >
             </div>
-          </ng-template>
-          <div class="metric-card">
-            <p class="metric-label">High Risk Cases</p>
-            <p class="metric-value text-rose-300">{{ highRiskCount }}</p>
-          </div>
-          <div class="metric-card">
-            <p class="metric-label">Avg Risk Score</p>
-            <p class="metric-value text-violet-300">
-              {{ avgRiskScore | number: "1.0-1" }}
+            <div class="signal-score">
+              {{ avgRiskScore | number: "1.0-1" }}<span>/100</span>
+            </div>
+            <p class="signal-caption">
+              Average risk index across analyzed studies
             </p>
+            <div
+              class="h-2 w-full rounded-full bg-slate-800 mt-4 overflow-hidden"
+            >
+              <div class="risk-progress" [style.width.%]="avgRiskScore"></div>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-      <div
-        class="xl:col-span-2 rounded-2xl border border-slate-700/80 bg-slate-900/70 p-6"
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <article class="data-card">
+        <p>Total Scans</p>
+        <h3>{{ scans().length }}</h3>
+        <small>Integrated in timeline</small>
+      </article>
+
+      <article
+        class="data-card"
+        *ngIf="authService.isDoctor(); else reviewedCard"
       >
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-bold text-white">Session Storyline</h2>
-          <span *ngIf="isLoading()" class="text-xs text-cyan-300"
-            >Loading...</span
-          >
+        <p>Pending Reviews</p>
+        <h3 class="text-amber-300">{{ pendingReviewCount() }}</h3>
+        <small>Awaiting physician decision</small>
+      </article>
+      <ng-template #reviewedCard>
+        <article class="data-card">
+          <p>Reviewed Studies</p>
+          <h3 class="text-emerald-300">{{ reviewedCount }}</h3>
+          <small>Doctor validated reports</small>
+        </article>
+      </ng-template>
+
+      <article class="data-card">
+        <p>Active Processing</p>
+        <h3 class="text-sky-300">{{ processingCount }}</h3>
+        <small>Currently in pipeline</small>
+      </article>
+
+      <article class="data-card">
+        <p>High Risk Cases</p>
+        <h3 class="text-rose-300">{{ highRiskCount }}</h3>
+        <small>Score threshold >= 70</small>
+      </article>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div class="xl:col-span-2 premium-panel">
+        <div class="panel-head">
+          <h2>Interpretation Workflow</h2>
+          <span *ngIf="isLoading()" class="loading-chip">Loading data...</span>
         </div>
 
-        <div class="space-y-3 text-sm text-gray-200">
-          <div class="story-item">
-            1.
-            {{
-              authService.isDoctor()
-                ? "Review queue loaded and ready for triage."
-                : "Your scan timeline is loaded and ready for review."
-            }}
-          </div>
-          <div class="story-item">
-            2.
-            {{
-              authService.isDoctor()
-                ? "Open the analysis workspace to inspect segmentation and submit clinical decisions."
-                : "Open your latest analysis and review doctor notes in one flow."
-            }}
-          </div>
-          <div class="story-item">
-            3.
-            {{
-              authService.isDoctor()
-                ? "Prioritize high-risk studies to reduce turnaround time."
-                : "Track trend evolution and continue follow-ups with confidence."
-            }}
-          </div>
+        <div class="timeline-steps">
+          <article class="step-card">
+            <span class="step-index">01</span>
+            <div>
+              <h3>
+                {{
+                  authService.isDoctor()
+                    ? "Triage Initialization"
+                    : "Timeline Initialization"
+                }}
+              </h3>
+              <p>
+                {{
+                  authService.isDoctor()
+                    ? "Pending cases and risk clusters are pre-ranked for rapid prioritization."
+                    : "Your personal MRI records are grouped for continuity and trend awareness."
+                }}
+              </p>
+            </div>
+          </article>
+
+          <article class="step-card">
+            <span class="step-index">02</span>
+            <div>
+              <h3>
+                {{
+                  authService.isDoctor()
+                    ? "Segmentation + Review"
+                    : "Metrics + Physician Notes"
+                }}
+              </h3>
+              <p>
+                {{
+                  authService.isDoctor()
+                    ? "Open workspace to inspect slices, adjust masks, and submit signed-off clinical decisions."
+                    : "Review volumetric metrics with doctor annotations for clinically meaningful interpretation."
+                }}
+              </p>
+            </div>
+          </article>
+
+          <article class="step-card">
+            <span class="step-index">03</span>
+            <div>
+              <h3>
+                {{
+                  authService.isDoctor()
+                    ? "Decision Closure"
+                    : "Follow-up Planning"
+                }}
+              </h3>
+              <p>
+                {{
+                  authService.isDoctor()
+                    ? "Finalize approvals and maintain transparent, audit-ready interpretation trails."
+                    : "Track trend progression and align next steps with your care plan."
+                }}
+              </p>
+            </div>
+          </article>
         </div>
 
-        <div
-          class="mt-5 p-4 rounded-xl border border-dashed border-cyan-400/30 bg-cyan-500/5 text-sm text-cyan-100"
-        >
-          {{
-            authService.isDoctor()
-              ? "Tip: open the Analysis Workspace first, then jump directly into Review for your pending studies."
-              : "Tip: use Analysis Workspace for new uploads and Scan History for longitudinal comparison."
-          }}
+        <div class="compliance-note">
+          <strong>Clinical note:</strong>
+          AI outputs are decision-support artifacts; final interpretation
+          remains physician-governed.
         </div>
       </div>
 
-      <div class="rounded-2xl border border-slate-700/80 bg-slate-900/70 p-6">
-        <h2 class="text-lg font-bold text-white mb-3">Recent Activity</h2>
-        <div class="space-y-3 max-h-[330px] overflow-auto pr-1">
-          <div
-            *ngFor="let scan of recentScans"
-            class="rounded-lg border border-slate-700 bg-slate-800/70 p-3"
+      <aside class="premium-panel">
+        <div class="panel-head">
+          <h2>Recent Activity</h2>
+          <span class="loading-chip"
+            >Reviewed {{ reviewedRate | number: "1.0-0" }}%</span
           >
-            <p class="text-sm text-white truncate mb-1">
-              {{ scan.originalFileName }}
-            </p>
-            <div
-              class="flex items-center justify-between text-xs text-gray-400"
-            >
+        </div>
+        <div class="activity-list">
+          <div *ngFor="let scan of recentScans" class="activity-row">
+            <div class="activity-title">{{ scan.originalFileName }}</div>
+            <div class="activity-meta">
               <span>{{ formatRelativeDate(scan.uploadDate) }}</span>
-              <span
-                class="px-2 py-0.5 rounded-full bg-slate-700 text-gray-300"
-                >{{ scan.analysisResult?.epilepsyRiskLevel ?? "Pending" }}</span
-              >
+              <span class="risk-pill">{{
+                scan.analysisResult?.epilepsyRiskLevel ?? "Pending"
+              }}</span>
             </div>
           </div>
+
           <div
             *ngIf="!isLoading() && recentScans.length === 0"
-            class="text-sm text-gray-500 border border-dashed border-slate-700 rounded-lg p-3"
+            class="empty-state-box"
           >
-            No scans yet. Start in Analysis Workspace.
+            No recent scans yet. Start by opening the Analysis Workspace.
           </div>
         </div>
+      </aside>
+    </section>
+
+    <section class="premium-panel faq-panel">
+      <div class="panel-head">
+        <h2>Frequently Asked Questions</h2>
+        <span class="loading-chip">MRI Interpretation FAQ</span>
+      </div>
+
+      <div class="faq-tabs" role="tablist" aria-label="FAQ categories">
+        <button
+          *ngFor="let category of faqCategories"
+          type="button"
+          class="faq-tab"
+          [class.active]="selectedFaqCategory() === category"
+          (click)="selectFaqCategory(category)"
+        >
+          {{ category }}
+        </button>
+      </div>
+
+      <div class="faq-stack">
+        <article
+          *ngFor="let item of filteredFaqItems; let idx = index"
+          class="faq-item"
+        >
+          <button class="faq-question" (click)="toggleFaq(idx)">
+            <span>{{ item.question }}</span>
+            <span class="faq-toggle" [class.open]="openFaqIndex() === idx"
+              >+</span
+            >
+          </button>
+          <div *ngIf="openFaqIndex() === idx" class="faq-answer">
+            {{ item.answer }}
+          </div>
+        </article>
       </div>
     </section>
   </div>
