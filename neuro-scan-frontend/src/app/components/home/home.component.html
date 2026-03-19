@@ -1,0 +1,173 @@
+<div class="min-h-screen home-shell p-6">
+  <div class="max-w-7xl mx-auto">
+    <section
+      class="hero-panel rounded-3xl p-8 md:p-10 mb-8 border border-cyan-400/25 relative overflow-hidden"
+    >
+      <div class="orb orb-a"></div>
+      <div class="orb orb-b"></div>
+      <div
+        class="relative z-10 flex flex-col lg:flex-row lg:items-center gap-8"
+      >
+        <div class="lg:w-7/12">
+          <p
+            class="text-[11px] uppercase tracking-[0.2em] text-cyan-300/80 mb-3"
+          >
+            NeuroScan Platform
+          </p>
+          <h1
+            class="text-4xl md:text-5xl font-black text-white leading-tight mb-4"
+          >
+            {{
+              authService.isDoctor()
+                ? "Clinical Mission Control"
+                : "My Brain Health Timeline"
+            }}
+          </h1>
+          <p
+            class="text-gray-200/90 text-base md:text-lg leading-relaxed max-w-2xl"
+          >
+            {{
+              authService.isDoctor()
+                ? "Start your session with triage visibility, priority queues, and one-click access to scan analysis and review."
+                : "Start your session with a clear overview of your scans, progress indicators, and instant access to reports."
+            }}
+          </p>
+
+          <div class="flex flex-wrap gap-3 mt-6">
+            <a
+              routerLink="/dashboard"
+              class="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-semibold transition-all"
+            >
+              Open Analysis Workspace
+            </a>
+            <a
+              *ngIf="authService.isDoctor()"
+              routerLink="/patients"
+              class="px-5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-white font-semibold border border-slate-600 transition-all"
+            >
+              Manage Patients
+            </a>
+            <a
+              *ngIf="authService.isStandardUser()"
+              routerLink="/scan-history"
+              class="px-5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-white font-semibold border border-slate-600 transition-all"
+            >
+              Open Scan History
+            </a>
+          </div>
+        </div>
+
+        <div class="lg:w-5/12 grid grid-cols-2 gap-3 w-full">
+          <div class="metric-card">
+            <p class="metric-label">Total Scans</p>
+            <p class="metric-value">{{ scans().length }}</p>
+          </div>
+          <div
+            class="metric-card"
+            *ngIf="authService.isDoctor(); else reviewedTpl"
+          >
+            <p class="metric-label">Pending Reviews</p>
+            <p class="metric-value text-amber-300">
+              {{ pendingReviewCount() }}
+            </p>
+          </div>
+          <ng-template #reviewedTpl>
+            <div class="metric-card">
+              <p class="metric-label">Reviewed</p>
+              <p class="metric-value text-emerald-300">{{ reviewedCount }}</p>
+            </div>
+          </ng-template>
+          <div class="metric-card">
+            <p class="metric-label">High Risk Cases</p>
+            <p class="metric-value text-rose-300">{{ highRiskCount }}</p>
+          </div>
+          <div class="metric-card">
+            <p class="metric-label">Avg Risk Score</p>
+            <p class="metric-value text-violet-300">
+              {{ avgRiskScore | number: "1.0-1" }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div
+        class="xl:col-span-2 rounded-2xl border border-slate-700/80 bg-slate-900/70 p-6"
+      >
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold text-white">Session Storyline</h2>
+          <span *ngIf="isLoading()" class="text-xs text-cyan-300"
+            >Loading...</span
+          >
+        </div>
+
+        <div class="space-y-3 text-sm text-gray-200">
+          <div class="story-item">
+            1.
+            {{
+              authService.isDoctor()
+                ? "Review queue loaded and ready for triage."
+                : "Your scan timeline is loaded and ready for review."
+            }}
+          </div>
+          <div class="story-item">
+            2.
+            {{
+              authService.isDoctor()
+                ? "Open the analysis workspace to inspect segmentation and submit clinical decisions."
+                : "Open your latest analysis and review doctor notes in one flow."
+            }}
+          </div>
+          <div class="story-item">
+            3.
+            {{
+              authService.isDoctor()
+                ? "Prioritize high-risk studies to reduce turnaround time."
+                : "Track trend evolution and continue follow-ups with confidence."
+            }}
+          </div>
+        </div>
+
+        <div
+          class="mt-5 p-4 rounded-xl border border-dashed border-cyan-400/30 bg-cyan-500/5 text-sm text-cyan-100"
+        >
+          {{
+            authService.isDoctor()
+              ? "Tip: open the Analysis Workspace first, then jump directly into Review for your pending studies."
+              : "Tip: use Analysis Workspace for new uploads and Scan History for longitudinal comparison."
+          }}
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-700/80 bg-slate-900/70 p-6">
+        <h2 class="text-lg font-bold text-white mb-3">Recent Activity</h2>
+        <div class="space-y-3 max-h-[330px] overflow-auto pr-1">
+          <div
+            *ngFor="let scan of recentScans"
+            class="rounded-lg border border-slate-700 bg-slate-800/70 p-3"
+          >
+            <p class="text-sm text-white truncate mb-1">
+              {{ scan.originalFileName }}
+            </p>
+            <div
+              class="flex items-center justify-between text-xs text-gray-400"
+            >
+              <span>{{ formatRelativeDate(scan.uploadDate) }}</span>
+              <span
+                class="px-2 py-0.5 rounded-full bg-slate-700 text-gray-300"
+                >{{ scan.analysisResult?.epilepsyRiskLevel ?? "Pending" }}</span
+              >
+            </div>
+          </div>
+          <div
+            *ngIf="!isLoading() && recentScans.length === 0"
+            class="text-sm text-gray-500 border border-dashed border-slate-700 rounded-lg p-3"
+          >
+            No scans yet. Start in Analysis Workspace.
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

@@ -7,6 +7,14 @@ import { PatientService } from '../../services/patient.service';
 import { AuthService } from '../../services/auth.service';
 import { User, AnalysisResult, MriScanDetail, Patient, ScanStatus } from '../../models/api.models';
 import jsPDF from 'jspdf';
+import { catchError, forkJoin, of } from 'rxjs';
+
+interface DashboardStatCard {
+  title: string;
+  value: string;
+  subtitle: string;
+  tone: 'cyan' | 'emerald' | 'amber' | 'rose' | 'violet';
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -98,6 +106,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   scanId: string | null = null;
   scanSource: 'user-history' | 'doctor-history' | null = null;
   sourcePatientId: string | null = null;
+  dashboardLoading = signal(false);
+  dashboardCards = signal<DashboardStatCard[]>([]);
+  dashboardNarrative = signal<string[]>([]);
+  dashboardRecentScans = signal<MriScanDetail[]>([]);
+  trendScores = signal<number[]>([]);
+  trendLabels = signal<string[]>([]);
   pollingInterval: any;
 
   private segmentationObjectUrl: string | null = null;
@@ -134,6 +148,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.authService.isDoctor()) {
       this.loadPatients();
     }
+
+    this.loadDashboardInsights();
     
     // Check if we have a scanId in query params (coming from scan list)
     this.route.queryParams.subscribe(params => {
@@ -179,6 +195,131 @@ export class DashboardComponent implements OnInit, OnDestroy {
         console.error('Failed to load patients:', error);
       }
     });
+  }
+
+  loadDashboardInsights(): void {
+    this.dashboardLoading.set(true);
+
+    if (this.authService.isDoctor()) {
+      forkJoin({
+        pending: this.mriService.getPendingReviewScans().pipe(catchError(() => of([] as MriScanDetail[]))),
+        scans: this.mriService.getAllScans().pipe(catchError(() => of([] as MriScanDetail[])))
+      }).subscribe({
+        next: ({ pending, scans }) => {
+          this.applyDashboardInsights(scans, pending.length);
+          this.dashboardLoading.set(false);
+        },
+        error: () => {
+          this.dashboardLoading.set(false);
+        }
+      });
+      return;
+    }
+
+    this.mriService.getMyScans().pipe(catchError(() => of([] as MriScanDetail[]))).subscribe({
+      next: (scans) => {
+        this.applyDashboardInsights(scans, 0);
+        this.dashboardLoading.set(false);
+      },
+      error: () => {
+        this.dashboardLoading.set(false);
+      }
+    });
+  }
+
+  private applyDashboardInsights(scans: MriScanDetail[], pendingCount: number): void {
+    const sorted = [...scans].sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime());
+    const recent = sorted.slice(0, 6);
+    this.dashboardRecentScans.set(recent);
+
+    const scored = sorted.filter(s => s.analysisResult?.epilepsyRiskScore !== undefined);
+    const highRiskCount = scored.filter(s => (s.analysisResult?.epilepsyRiskScore ?? 0) >= 70).length;
+    const avgRisk = scored.length > 0
+      ? scored.reduce((acc, s) => acc + (s.analysisResult?.epilepsyRiskScore ?? 0), 0) / scored.length
+      : 0;
+
+    const thisWeekCutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const weeklyScans = sorted.filter(s => new Date(s.uploadDate).getTime() >= thisWeekCutoff).length;
+
+    const trend = scored.slice(0, 8).reverse();
+    this.trendScores.set(trend.map(s => Number((s.analysisResult?.epilepsyRiskScore ?? 0).toFixed(1))));
+    this.trendLabels.set(trend.map(s => new Date(s.uploadDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })));
+
+    if (this.authService.isDoctor()) {
+      this.dashboardCards.set([
+        {
+          title: 'Pending Reviews',
+          value: String(pendingCount),
+          subtitle: 'Scans waiting for clinical decision',
+          tone: 'amber'
+        },
+        {
+          title: 'Tracked Scans',
+          value: String(sorted.length),
+          subtitle: 'Scans available in your scope',
+          tone: 'cyan'
+        },
+        {
+          title: 'High-Risk Cases',
+          value: String(highRiskCount),
+          subtitle: 'Risk score >= 70',
+          tone: 'rose'
+        },
+        {
+          title: 'Avg Risk Signature',
+          value: `${avgRisk.toFixed(1)} / 100`,
+          subtitle: 'Mean AI risk across analyzed scans',
+          tone: 'violet'
+        }
+      ]);
+
+      this.dashboardNarrative.set([
+        `You have ${pendingCount} review${pendingCount === 1 ? '' : 's'} queued for validation.`,
+        `${weeklyScans} scan${weeklyScans === 1 ? '' : 's'} entered the pipeline in the last 7 days.`,
+        highRiskCount > 0
+          ? `${highRiskCount} case${highRiskCount === 1 ? '' : 's'} currently classify as high risk and should be prioritized.`
+          : 'No high-risk cases detected in your current dataset.'
+      ]);
+      return;
+    }
+
+    const reviewedCount = sorted.filter(s => s.status === ScanStatus.ReviewedByDoctor).length;
+    const lastReviewed = sorted.find(s => s.status === ScanStatus.ReviewedByDoctor);
+
+    this.dashboardCards.set([
+      {
+        title: 'My Scans',
+        value: String(sorted.length),
+        subtitle: 'Total studies in your timeline',
+        tone: 'cyan'
+      },
+      {
+        title: 'Reviewed by Doctor',
+        value: String(reviewedCount),
+        subtitle: 'Completed clinical reviews',
+        tone: 'emerald'
+      },
+      {
+        title: 'Current Avg Risk',
+        value: `${avgRisk.toFixed(1)} / 100`,
+        subtitle: 'Average across analyzed scans',
+        tone: 'violet'
+      },
+      {
+        title: 'Last Reviewed',
+        value: lastReviewed ? this.formatRelativeDate(lastReviewed.uploadDate) : 'Pending',
+        subtitle: 'Most recent doctor-reviewed scan',
+        tone: 'amber'
+      }
+    ]);
+
+    this.dashboardNarrative.set([
+      `${reviewedCount} scan${reviewedCount === 1 ? '' : 's'} have already been validated by a physician.`,
+      `${weeklyScans} scan${weeklyScans === 1 ? '' : 's'} were uploaded in the past week.`,
+      sorted.length > 0
+        ? 'Use the history panel to compare your latest report with previous sessions.'
+        : 'Start by uploading your first MRI scan to generate an AI report.'
+    ]);
   }
 
   loadExistingScan(scanId: string): void {
@@ -389,9 +530,98 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
     
     this.medicalReport.set(result.medicalReportText || 'Medical report not available.');
+
+    this.dashboardNarrative.set(this.buildClinicalNarrative(result));
     
     this.isAnalyzing.set(false);
     this.analysisComplete.set(true);
+    this.loadDashboardInsights();
+  }
+
+  private buildClinicalNarrative(result: AnalysisResult): string[] {
+    const asymmetryStatement = result.asymmetryIndex < 10
+      ? 'Inter-hemispheric asymmetry is within a low-variance range.'
+      : result.asymmetryIndex < 15
+        ? 'Inter-hemispheric asymmetry is moderately elevated and should be monitored.'
+        : 'Inter-hemispheric asymmetry is elevated and warrants closer clinical inspection.';
+
+    const tissueLead = [
+      { label: 'CSF', value: result.csfVolume },
+      { label: 'Gray Matter', value: result.gmVolume },
+      { label: 'White Matter', value: result.wmVolume }
+    ].sort((a, b) => b.value - a.value)[0];
+
+    return [
+      `AI classifies this study as ${result.epilepsyRiskLevel} risk with a score of ${result.epilepsyRiskScore.toFixed(1)}/100.`,
+      `${asymmetryStatement}`,
+      `${tissueLead.label} is the dominant segmented tissue in this scan.`
+    ];
+  }
+
+  get trendPolylinePoints(): string {
+    const scores = this.trendScores();
+    if (scores.length === 0) {
+      return '';
+    }
+
+    const width = 420;
+    const height = 130;
+    const step = scores.length === 1 ? width : width / (scores.length - 1);
+
+    return scores
+      .map((score, index) => {
+        const x = index * step;
+        const y = height - (Math.max(0, Math.min(score, 100)) / 100) * height;
+        return `${x},${y}`;
+      })
+      .join(' ');
+  }
+
+  get trendFillPoints(): string {
+    const line = this.trendPolylinePoints;
+    if (!line) {
+      return '';
+    }
+
+    return `0,130 ${line} 420,130`;
+  }
+
+  get latestTrendScore(): number {
+    const scores = this.trendScores();
+    return scores.length > 0 ? scores[scores.length - 1] : 0;
+  }
+
+  formatRelativeDate(dateValue: string): string {
+    const then = new Date(dateValue).getTime();
+    const diffMs = Date.now() - then;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 0) {
+      return 'Today';
+    }
+
+    if (diffDays === 1) {
+      return '1 day ago';
+    }
+
+    if (diffDays < 30) {
+      return `${diffDays} days ago`;
+    }
+
+    const diffMonths = Math.floor(diffDays / 30);
+    return diffMonths === 1 ? '1 month ago' : `${diffMonths} months ago`;
+  }
+
+  getCardToneClasses(tone: DashboardStatCard['tone']): string {
+    const toneMap: Record<DashboardStatCard['tone'], string> = {
+      cyan: 'from-cyan-500/20 to-cyan-400/5 border-cyan-400/30',
+      emerald: 'from-emerald-500/20 to-emerald-400/5 border-emerald-400/30',
+      amber: 'from-amber-500/20 to-amber-400/5 border-amber-400/30',
+      rose: 'from-rose-500/20 to-rose-400/5 border-rose-400/30',
+      violet: 'from-violet-500/20 to-violet-400/5 border-violet-400/30'
+    };
+
+    return toneMap[tone];
   }
 
   loadSlice(index: number): void {

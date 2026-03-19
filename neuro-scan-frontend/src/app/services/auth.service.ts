@@ -91,7 +91,7 @@ export class AuthService {
       return '/admin';
     }
 
-    return '/dashboard';
+    return '/home';
   }
 
   private setAuthData(token: string, user: User): void {

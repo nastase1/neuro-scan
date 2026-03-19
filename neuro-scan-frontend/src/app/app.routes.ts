@@ -9,6 +9,7 @@ import { ForgotPasswordComponent } from './components/forgot-password/forgot-pas
 import { ScanHistoryComponent } from './components/scan-history/scan-history.component';
 import { DoctorReviewComponent } from './components/doctor-review/doctor-review.component';
 import { AdminComponent } from './components/admin/admin.component';
+import { HomeComponent } from './components/home/home.component';
 import { authGuard } from './guards/auth.guard';
 import { doctorGuard, adminGuard } from './guards/role.guard';
 
@@ -20,6 +21,11 @@ export const routes: Routes = [
   {
     path: 'scan-history',
     component: ScanHistoryComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'home',
+    component: HomeComponent,
     canActivate: [authGuard]
   },
   { 

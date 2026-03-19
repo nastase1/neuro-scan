@@ -1,0 +1,66 @@
+:host {
+  display: block;
+}
+
+.home-shell {
+  background:
+    radial-gradient(circle at 85% 10%, rgba(34, 211, 238, 0.12), transparent 35%),
+    radial-gradient(circle at 5% 80%, rgba(99, 102, 241, 0.12), transparent 30%),
+    linear-gradient(135deg, #0b1220 0%, #0f172a 55%, #111827 100%);
+}
+
+.hero-panel {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(23, 37, 84, 0.6));
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.35);
+}
+
+.orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(38px);
+}
+
+.orb-a {
+  width: 220px;
+  height: 220px;
+  top: -70px;
+  right: -40px;
+  background: rgba(34, 211, 238, 0.18);
+}
+
+.orb-b {
+  width: 260px;
+  height: 260px;
+  bottom: -100px;
+  left: -60px;
+  background: rgba(129, 140, 248, 0.16);
+}
+
+.metric-card {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.55);
+  border-radius: 0.9rem;
+  padding: 0.85rem;
+}
+
+.metric-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(203, 213, 225, 0.8);
+  margin-bottom: 0.3rem;
+}
+
+.metric-value {
+  font-size: 1.8rem;
+  line-height: 1;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.story-item {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 0.7rem;
+  padding: 0.7rem 0.8rem;
+}

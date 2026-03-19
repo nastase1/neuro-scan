@@ -42,26 +42,43 @@ export class ScanHistoryComponent implements OnInit {
   constructor(private mriService: MriService, private router: Router) {}
 
   ngOnInit(): void {
-      // First, get the current user's patient record
-      this.mriService.getMyPatient().subscribe({
-        next: (patient) => {
-          // Then, fetch all scans for that patient
-          this.mriService.getPatientScans(patient.id).subscribe({
-            next: (scans) => {
-              this.scans.set(scans);
-              this.isLoading.set(false);
-            },
-            error: () => {
-              this.errorMessage.set('Failed to load scan history.');
-              this.isLoading.set(false);
-            }
-          });
-        },
-        error: () => {
-          this.errorMessage.set('No patient record found.');
-          this.isLoading.set(false);
-        }
-      });
+    this.loadHistory();
+  }
+
+  private loadHistory(): void {
+    // Primary path: patient linkage, so user can see all scans tied to their patient profile.
+    this.mriService.getMyPatient().subscribe({
+      next: (patient) => {
+        this.mriService.getPatientScans(patient.id).subscribe({
+          next: (scans) => {
+            this.scans.set(scans);
+            this.errorMessage.set('');
+            this.isLoading.set(false);
+          },
+          error: () => {
+            this.loadHistoryFallback();
+          }
+        });
+      },
+      error: () => {
+        this.loadHistoryFallback();
+      }
+    });
+  }
+
+  private loadHistoryFallback(): void {
+    // Fallback: API already resolves scans for current user identity even if patient linkage is missing.
+    this.mriService.getMyScans().subscribe({
+      next: (scans) => {
+        this.scans.set(scans);
+        this.errorMessage.set('');
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.errorMessage.set('Failed to load scan history. Please try again.');
+        this.isLoading.set(false);
+      }
+    });
   }
 
   viewScan(scanId: string): void {
