@@ -1,0 +1,59 @@
+name: Frontend Version Bump
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  bump-frontend-version:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Bump frontend patch version
+        working-directory: neuro-scan-frontend
+        run: npm version patch --no-git-tag-version
+
+      - name: Sync app version constants
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./neuro-scan-frontend/package.json').version")
+          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          cat > neuro-scan-frontend/src/app/config/app-version.ts <<EOF
+          export const APP_VERSION = '${VERSION}';
+          export const APP_BUILD_DATE = '${BUILD_DATE}';
+          EOF
+
+      - name: Commit and push
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add neuro-scan-frontend/package.json
+          git add neuro-scan-frontend/package-lock.json || true
+          git add neuro-scan-frontend/src/app/config/app-version.ts
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          VERSION=$(node -p "require('./neuro-scan-frontend/package.json').version")
+          git commit -m "ci: bump frontend version to ${VERSION}"
+          git push

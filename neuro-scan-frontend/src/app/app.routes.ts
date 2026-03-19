@@ -10,6 +10,7 @@ import { ScanHistoryComponent } from './components/scan-history/scan-history.com
 import { DoctorReviewComponent } from './components/doctor-review/doctor-review.component';
 import { AdminComponent } from './components/admin/admin.component';
 import { HomeComponent } from './components/home/home.component';
+import { LegalPageComponent } from './components/legal-page/legal-page.component';
 import { authGuard } from './guards/auth.guard';
 import { doctorGuard, adminGuard } from './guards/role.guard';
 
@@ -62,6 +63,24 @@ export const routes: Routes = [
     path: 'admin',
     component: AdminComponent,
     canActivate: [authGuard, adminGuard]
+  },
+  {
+    path: 'terms',
+    component: LegalPageComponent,
+    canActivate: [authGuard],
+    data: { pageType: 'terms' }
+  },
+  {
+    path: 'privacy',
+    component: LegalPageComponent,
+    canActivate: [authGuard],
+    data: { pageType: 'privacy' }
+  },
+  {
+    path: 'contact',
+    component: LegalPageComponent,
+    canActivate: [authGuard],
+    data: { pageType: 'contact' }
   },
   { path: '**', redirectTo: '/login' }
 ];

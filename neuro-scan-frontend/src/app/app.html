@@ -1,4 +1,7 @@
 <app-nav *ngIf="showNav"></app-nav>
 <div class="app-shell">
-  <router-outlet />
+  <main class="app-content">
+    <router-outlet></router-outlet>
+  </main>
+  <app-footer *ngIf="showNav"></app-footer>
 </div>
