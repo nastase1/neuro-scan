@@ -168,7 +168,12 @@ export class PatientDetailComponent implements OnInit {
   // Actions
   editPatient(): void {
     if (this.patient()) {
-      this.router.navigate(['/patients', this.patient()!.id, 'edit']);
+      this.router.navigate(['/patients', this.patient()!.id, 'edit'], {
+        queryParams: {
+          returnTo: 'patient-detail',
+          patientId: this.patient()!.id
+        }
+      });
     }
   }
 
@@ -177,7 +182,14 @@ export class PatientDetailComponent implements OnInit {
   }
 
   viewScanDetails(scanId: string): void {
-    this.router.navigate(['/dashboard'], { queryParams: { scanId } });
+    const patientId = this.patient()?.id;
+    this.router.navigate(['/dashboard'], {
+      queryParams: {
+        scanId,
+        source: 'doctor-history',
+        patientId: patientId ?? undefined
+      }
+    });
   }
 
   deleteScan(scanId: string, event: Event): void {

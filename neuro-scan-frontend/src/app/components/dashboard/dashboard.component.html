@@ -4,6 +4,28 @@
 >
   <!-- Main Content Area -->
   <div class="max-w-7xl mx-auto">
+    <section *ngIf="canGoBackToHistory()" class="mb-6 animate-slide-up">
+      <button
+        (click)="backToHistory()"
+        class="glass-card glass-card-hover px-4 py-2 text-cyan-300 hover:text-cyan-200 rounded-lg font-medium transition-all"
+      >
+        <svg
+          class="w-4 h-4 inline mr-2"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 19l-7-7 7-7"
+          ></path>
+        </svg>
+        {{ backToHistoryLabel }}
+      </button>
+    </section>
+
     <!-- Patient Selection Section (Doctors Only) -->
     <section
       *ngIf="

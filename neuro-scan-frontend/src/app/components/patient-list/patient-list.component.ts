@@ -77,7 +77,9 @@ export class PatientListComponent implements OnInit {
 
   editPatient(patientId: string, event: Event): void {
     event.stopPropagation();
-    this.router.navigate(['/patients', patientId, 'edit']);
+    this.router.navigate(['/patients', patientId, 'edit'], {
+      queryParams: { returnTo: 'patients-list' }
+    });
   }
 
   deletePatient(patientId: string, event: Event): void {

@@ -65,7 +65,12 @@ export class ScanHistoryComponent implements OnInit {
   }
 
   viewScan(scanId: string): void {
-    this.router.navigate(['/dashboard'], { queryParams: { scanId } });
+    this.router.navigate(['/dashboard'], {
+      queryParams: {
+        scanId,
+        source: 'user-history'
+      }
+    });
   }
 
   getStatusKey(status: ScanStatus): string {

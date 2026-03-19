@@ -1,12 +1,16 @@
-<nav class="glass-card fixed top-0 left-0 right-0 z-50 m-4 animate-slide-down">
+<nav class="glass-card z-40 m-4 animate-slide-down">
   <div class="w-full px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
       <!-- Logo - Far Left -->
       <div class="flex-shrink-0">
-        <h1 class="text-2xl font-bold glow-text">
+        <a
+          [routerLink]="getHomeRoute()"
+          (click)="closeMenus()"
+          class="text-2xl font-bold glow-text block"
+        >
           <span class="text-cyan-400">Neuro</span
           ><span class="text-teal-400">Scan</span>
-        </h1>
+        </a>
       </div>
 
       <!-- Right Side: Navigation + User Profile -->

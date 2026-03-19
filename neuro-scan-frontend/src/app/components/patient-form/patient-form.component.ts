@@ -15,6 +15,8 @@ import { CreatePatient, UpdatePatient, Patient } from '../../models/api.models';
 export class PatientFormComponent implements OnInit {
   isEditMode = signal(false);
   patientId: string | null = null;
+  returnTo: 'patients-list' | 'patient-detail' = 'patients-list';
+  returnPatientId: string | null = null;
   isLoading = signal(false);
   isSaving = signal(false);
   errorMessage = signal('');
@@ -36,6 +38,13 @@ export class PatientFormComponent implements OnInit {
   ngOnInit(): void {
     this.patientId = this.route.snapshot.paramMap.get('id');
     this.isEditMode.set(!!this.patientId && this.route.snapshot.url.some(segment => segment.path === 'edit'));
+    const returnTo = this.route.snapshot.queryParamMap.get('returnTo');
+    const returnPatientId = this.route.snapshot.queryParamMap.get('patientId');
+
+    if (returnTo === 'patient-detail' && returnPatientId) {
+      this.returnTo = 'patient-detail';
+      this.returnPatientId = returnPatientId;
+    }
 
     if (this.isEditMode() && this.patientId) {
       this.loadPatient(this.patientId);
@@ -88,7 +97,7 @@ export class PatientFormComponent implements OnInit {
 
       this.patientService.updatePatient(this.patientId, updateData).subscribe({
         next: () => {
-          this.router.navigate(['/patients']);
+          this.navigateAfterEdit();
         },
         error: (error) => {
           console.error('Error updating patient:', error);
@@ -112,6 +121,19 @@ export class PatientFormComponent implements OnInit {
   }
 
   cancel(): void {
+    if (this.isEditMode()) {
+      this.navigateAfterEdit();
+      return;
+    }
+    this.router.navigate(['/patients']);
+  }
+
+  private navigateAfterEdit(): void {
+    if (this.returnTo === 'patient-detail' && this.returnPatientId) {
+      this.router.navigate(['/patients', this.returnPatientId]);
+      return;
+    }
+
     this.router.navigate(['/patients']);
   }
 

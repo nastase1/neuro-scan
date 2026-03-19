@@ -7,7 +7,7 @@ import {
   ElementRef,
   AfterViewInit,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MriService } from '../../services/mri.service';
@@ -97,11 +97,14 @@ export class DoctorReviewComponent implements OnInit, OnDestroy, AfterViewInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
+    private location: Location,
     private mriService: MriService,
     public authService: AuthService
   ) {}
 
   ngOnInit(): void {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+
     this.scanId = this.route.snapshot.paramMap.get('scanId') ?? '';
     if (!this.scanId) {
       this.router.navigate(['/dashboard']);
@@ -395,6 +398,11 @@ export class DoctorReviewComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   goBack(): void {
+    if (window.history.length > 1) {
+      this.location.back();
+      return;
+    }
+
     this.router.navigate(['/dashboard']);
   }
 

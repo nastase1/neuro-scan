@@ -185,6 +185,11 @@ public class MriScanService : IMriScanService
             _logger.LogInformation($"Calling AI service for scan {mriScan.Id}");
             var aiResult = await aiAnalysisService.AnalyzeMriScanAsync(mriScan.StoredFilePath);
 
+            // Normalize risk level from score to ensure consistent, accurate classification.
+            // 0-39: Low, 40-69: Moderate, 70-100: High
+            var accurateRiskLevel = GetEpilepsyRiskLevel(aiResult.Epilepsy.RiskScore);
+            aiResult.Epilepsy.RiskLevel = accurateRiskLevel;
+
             // Step 2: Get patient details for report context
             var patient = await patientRepository.GetByIdAsync(mriScan.PatientId);
             if (patient == null)
@@ -244,7 +249,7 @@ public class MriScanService : IMriScanService
                 AsymmetryIndex = aiResult.Segresnet.AsymmetryIndex,
                 // Epilepsy risk
                 EpilepsyRiskScore = aiResult.Epilepsy.RiskScore,
-                EpilepsyRiskLevel = aiResult.Epilepsy.RiskLevel,
+                EpilepsyRiskLevel = accurateRiskLevel,
                 // Segmentation slices
                 SegmentationImagePath = segImageDir,
                 SegmentationSliceCount = segSliceCount,
@@ -260,7 +265,7 @@ public class MriScanService : IMriScanService
             mriScan.Status = ScanStatus.Analyzed;
             await mriScanRepository.UpdateAsync(mriScan);
 
-            _logger.LogInformation($"Scan {mriScan.Id} processed successfully — Epilepsy risk: {aiResult.Epilepsy.RiskLevel}");
+            _logger.LogInformation($"Scan {mriScan.Id} processed successfully — Epilepsy risk: {accurateRiskLevel}");
 
             // Step 6: Email results to patient (if they have an email address)
             if (!string.IsNullOrWhiteSpace(patient.Email))
@@ -277,7 +282,7 @@ public class MriScanService : IMriScanService
                         WmVolume = aiResult.Segresnet.WmVolume,
                         AsymmetryIndex = aiResult.Segresnet.AsymmetryIndex,
                         EpilepsyRiskScore = aiResult.Epilepsy.RiskScore,
-                        EpilepsyRiskLevel = aiResult.Epilepsy.RiskLevel
+                        EpilepsyRiskLevel = accurateRiskLevel
                     };
                     await emailService.SendScanResultsEmailAsync(
                         patient.Email,
@@ -680,5 +685,15 @@ public class MriScanService : IMriScanService
         var age = today.Year - dateOfBirth.Year;
         if (dateOfBirth.Date > today.AddYears(-age)) age--;
         return age;
+    }
+
+    private static string GetEpilepsyRiskLevel(double riskScore)
+    {
+        return riskScore switch
+        {
+            >= 70 => "High",
+            >= 40 => "Moderate",
+            _ => "Low"
+        };
     }
 }

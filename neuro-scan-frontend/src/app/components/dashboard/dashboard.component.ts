@@ -96,6 +96,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // UI states
   selectedFile: File | null = null;
   scanId: string | null = null;
+  scanSource: 'user-history' | 'doctor-history' | null = null;
+  sourcePatientId: string | null = null;
   pollingInterval: any;
 
   private segmentationObjectUrl: string | null = null;
@@ -136,6 +138,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Check if we have a scanId in query params (coming from scan list)
     this.route.queryParams.subscribe(params => {
       const scanId = params['scanId'];
+      const source = params['source'];
+      const patientId = params['patientId'];
+
+      this.scanSource = source === 'user-history' || source === 'doctor-history' ? source : null;
+      this.sourcePatientId = typeof patientId === 'string' ? patientId : null;
+
       if (scanId) {
         console.log('Loading scan from query param:', scanId);
         this.loadExistingScan(scanId);
@@ -409,6 +417,31 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const index = parseInt((event.target as HTMLInputElement).value, 10);
     this.currentSliceIndex.set(index);
     this.loadSlice(index);
+  }
+
+  canGoBackToHistory(): boolean {
+    return !!this.scanId && !!this.scanSource;
+  }
+
+  backToHistory(): void {
+    if (this.scanSource === 'doctor-history' && this.sourcePatientId) {
+      this.router.navigate(['/patients', this.sourcePatientId]);
+      return;
+    }
+
+    this.router.navigate(['/scan-history']);
+  }
+
+  get backToHistoryLabel(): string {
+    if (this.scanSource === 'doctor-history') {
+      return 'Back to Patient History';
+    }
+
+    if (this.scanSource === 'user-history') {
+      return 'Back to My History';
+    }
+
+    return 'Back to History';
   }
 
   resetAnalysis(): void {
