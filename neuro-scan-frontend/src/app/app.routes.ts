@@ -82,5 +82,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     data: { pageType: 'contact' }
   },
+  {
+    path: 'support',
+    component: LegalPageComponent,
+    canActivate: [authGuard],
+    data: { pageType: 'support' }
+  },
   { path: '**', redirectTo: '/login' }
 ];
