@@ -6,8 +6,15 @@
 	min-height: calc(100vh - 82px);
 	display: flex;
 	flex-direction: column;
+	padding-bottom: env(safe-area-inset-bottom);
 }
 
 .app-content {
 	flex: 1;
+}
+
+@media (max-width: 768px) {
+	.app-shell {
+		min-height: calc(100vh - 72px);
+	}
 }

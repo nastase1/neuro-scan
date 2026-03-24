@@ -15,6 +15,19 @@
 }
 
 @layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
   body {
     @apply text-gray-100 antialiased;
     font-family: Manrope, "Segoe UI", system-ui, sans-serif;
@@ -47,6 +60,17 @@
     border-color: rgba(34, 211, 238, 0.55) !important;
     box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.18) !important;
   }
+}
+
+img,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+svg {
+  flex-shrink: 0;
 }
 
 @layer utilities {
@@ -208,6 +232,53 @@ app-admin .btn-secondary {
 app-admin .btn-secondary:hover {
   border-color: rgba(34, 211, 238, 0.5) !important;
   color: #e2e8f0 !important;
+}
+
+@media (max-width: 768px) {
+  .min-h-screen.bg-gradient-to-br.from-slate-900.via-slate-800.to-slate-900 {
+    font-size: 1rem;
+  }
+
+  .app-content .text-4xl {
+    font-size: 2rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .app-content .text-3xl {
+    font-size: 1.7rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .app-content .text-2xl {
+    font-size: 1.35rem !important;
+  }
+
+  .fixed.bottom-8.right-8.w-16.h-16 {
+    bottom: 1rem !important;
+    right: 1rem !important;
+    width: 3rem !important;
+    height: 3rem !important;
+    border-radius: 0.85rem !important;
+  }
+
+  .fixed.bottom-8.right-8.w-16.h-16 svg {
+    width: 1.35rem !important;
+    height: 1.35rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    font-size: 15px;
+  }
+
+  .app-content .text-4xl {
+    font-size: 1.8rem !important;
+  }
+
+  .app-content .text-3xl {
+    font-size: 1.5rem !important;
+  }
 }
 
 /* Premium tab treatment for admin links in top nav */

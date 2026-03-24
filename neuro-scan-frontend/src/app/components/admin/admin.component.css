@@ -323,6 +323,7 @@
   border: 1px solid #334155;
   border-radius: 12px;
   overflow: hidden;
+  overflow-x: auto;
 }
 
 .data-table {
@@ -695,4 +696,64 @@
 @keyframes toastIn {
   from { opacity: 0; transform: translateY(-10px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 1rem;
+  }
+
+  .page-header {
+    margin-bottom: 1.1rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.35rem;
+  }
+
+  .overview-hero,
+  .insight-card,
+  .stat-card {
+    padding: 0.9rem;
+  }
+
+  .search-input,
+  .filter-select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .data-table {
+    min-width: 740px;
+  }
+
+  .modal,
+  .modal-sm {
+    width: calc(100vw - 1rem);
+    min-width: 0;
+    max-width: calc(100vw - 1rem);
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .modal-footer {
+    flex-wrap: wrap;
+  }
+
+  .modal-footer .btn-primary,
+  .modal-footer .btn-secondary,
+  .modal-footer .btn-danger {
+    width: 100%;
+  }
+
+  .toast {
+    top: 1rem;
+    right: 0.8rem;
+    left: 0.8rem;
+  }
 }

@@ -164,6 +164,24 @@ pre {
   h2 {
     font-size: 1.75rem;
   }
+
+  .glass-card:hover {
+    transform: none;
+  }
+
+  .command-center-shell {
+    border-radius: 0.9rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .command-center-shell {
+    padding: 0.9rem;
+  }
+
+  pre {
+    font-size: 0.78rem;
+  }
 }
 
 /* Tooltip Enhancement (if needed) */
