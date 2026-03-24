@@ -1,21 +1,26 @@
 {
+  "id": "/",
   "name": "NeuroScan",
   "short_name": "NeuroScan",
   "description": "NeuroScan - AI-powered epilepsy risk analysis.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#0b1220",
   "theme_color": "#0ea5e9",
   "icons": [
     {
-      "src": "tab-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "logo.ico",
-      "sizes": "any",
-      "type": "image/x-icon"
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
