@@ -224,13 +224,13 @@
           </p>
         </div>
 
-        <!-- Medical Record Number -->
+        <!-- Medical Record Identifier -->
         <div>
           <label
             for="mrn"
             class="block text-sm font-semibold text-gray-300 mb-2"
           >
-            Medical Record Number (MRN) <span class="text-red-400">*</span>
+            Medical Record Identifier (MRI) <span class="text-red-400">*</span>
           </label>
           <div class="relative">
             <div
@@ -262,14 +262,14 @@
               [readonly]="isEditMode()"
               class="w-full pl-12 pr-4 py-3 glass-card text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
               [class.opacity-60]="isEditMode()"
-              placeholder="MRN-2026-00001"
+              placeholder="MRI-2026-00001"
               [disabled]="isSaving()"
             />
           </div>
           <p class="text-xs text-gray-500 mt-1">
             {{
               isEditMode()
-                ? "Medical Record Number cannot be changed"
+                ? "Medical Record Identifier cannot be changed"
                 : "Unique identifier for the patient"
             }}
           </p>

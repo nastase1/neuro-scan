@@ -913,11 +913,12 @@
               >Generated: {{ analysisResult()?.analyzedAt || "Just now" }}</span
             >
           </div>
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-3 relative z-[20]">
             <button
               *ngIf="isDoctor() && scanId"
+              type="button"
               [routerLink]="['/review', scanId]"
-              class="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-purple-500/40 hover:scale-105 transition-all"
+              class="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-purple-500/40 hover:scale-105 transition-all pointer-events-auto"
             >
               <svg
                 class="w-4 h-4 inline mr-1.5"
@@ -935,8 +936,9 @@
               Open for Review
             </button>
             <button
+              type="button"
               (click)="resetAnalysis()"
-              class="px-6 py-2 glass-card glass-card-hover text-cyan-400 font-semibold rounded-lg hover:scale-105 transition-all"
+              class="px-6 py-2 glass-card glass-card-hover text-cyan-400 font-semibold rounded-lg hover:scale-105 transition-all pointer-events-auto"
             >
               Analyze Another Scan
             </button>
@@ -949,7 +951,8 @@
   <!-- Floating Action Button -->
   <button
     *ngIf="analysisComplete()"
-    class="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-2xl shadow-2xl shadow-cyan-500/50 flex items-center justify-center hover:scale-110 transition-all duration-300 group"
+    aria-hidden="true"
+    class="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-2xl shadow-2xl shadow-cyan-500/50 flex items-center justify-center hover:scale-110 transition-all duration-300 group pointer-events-none"
   >
     <svg
       class="w-8 h-8 text-white group-hover:rotate-90 transition-transform duration-300"
