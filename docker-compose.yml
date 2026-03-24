@@ -1,48 +1,58 @@
-version: "3.8"
-
 services:
-  # .NET Backend API
+  frontend:
+    build:
+      context: ./neuro-scan-frontend
+      dockerfile: Dockerfile
+    container_name: neuroscan-frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - api
+    networks:
+      - neuroscan-network
+
   api:
     build:
       context: .
       dockerfile: NeuroScan.API/Dockerfile
     container_name: neuroscan-api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__DefaultConnection=Data Source=/app/data/neuroscan.db
-      - Jwt__Key=YourSuperSecretKeyThatIsAtLeast32CharactersLong123456
-      - Jwt__Issuer=NeuroScanAPI
-      - Jwt__Audience=NeuroScanClient
-      - PythonAiService__Url=http://python-ai:8000
-      - OpenAI__ApiKey=${OPENAI_API_KEY}
-      - Storage__UploadPath=/app/uploads/scans
-      - Storage__TrainingDataPath=/app/uploads/training-data
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:80
+      DisableHttpsRedirection: "true"
+      ConnectionStrings__DefaultConnection: ${CONNECTION_STRING:-Data Source=/app/data/neuroscan.db}
+      Jwt__Key: ${JWT_KEY:-YourSuperSecretKeyThatIsAtLeast32CharactersLong123456}
+      Jwt__Issuer: ${JWT_ISSUER:-NeuroScanAPI}
+      Jwt__Audience: ${JWT_AUDIENCE:-NeuroScanClient}
+      PythonAiService__Url: ${PYTHON_AI_URL:-http://python-ai:8000}
+      OpenAI__ApiKey: ${OPENAI_API_KEY:-}
+      Storage__UploadPath: ${STORAGE_UPLOAD_PATH:-/app/uploads/scans}
+      Storage__TrainingDataPath: ${STORAGE_TRAINING_PATH:-/app/uploads/training-data}
+      Email__SmtpHost: ${SMTP_HOST:-smtp.gmail.com}
+      Email__SmtpPort: ${SMTP_PORT:-587}
+      Email__SmtpUser: ${SMTP_USER:-}
+      Email__SmtpPassword: ${SMTP_PASSWORD:-}
+      Email__FromEmail: ${SMTP_FROM_EMAIL:-}
+      Email__FromName: ${SMTP_FROM_NAME:-NeuroScan}
     ports:
       - "5000:80"
-    depends_on: []
+    depends_on:
+      - python-ai
     volumes:
       - api_uploads:/app/uploads
       - sqlite_data:/app/data
     networks:
       - neuroscan-network
 
-  # Python AI Microservice (FastAPI)
   python-ai:
-    image: tiangolo/uvicorn-gunicorn-fastapi:python3.11
+    build:
+      context: ../python-ai-service
+      dockerfile: Dockerfile
     container_name: neuroscan-python-ai
-    environment:
-      - MODULE_NAME=main
-      - VARIABLE_NAME=app
     ports:
-      - "8000:80"
-    volumes:
-      - ./python-ai-service:/app
+      - "8000:8000"
     networks:
       - neuroscan-network
-    command: >
-      sh -c "pip install nibabel numpy scikit-image scipy &&
-             uvicorn main:app --host 0.0.0.0 --port 80 --reload"
 
 volumes:
   sqlite_data:

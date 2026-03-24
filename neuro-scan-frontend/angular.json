@@ -27,6 +27,12 @@
           },
           "configurations": {
             "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ],
               "budgets": [
                 {
                   "type": "initial",
@@ -41,6 +47,17 @@
               ],
               "outputHashing": "all"
             },
+            "docker": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.docker.ts"
+                }
+              ],
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": false
+            },
             "development": {
               "optimization": false,
               "extractLicenses": false,
@@ -54,6 +71,9 @@
           "configurations": {
             "production": {
               "buildTarget": "neuro-scan-frontend:build:production"
+            },
+            "docker": {
+              "buildTarget": "neuro-scan-frontend:build:docker"
             },
             "development": {
               "buildTarget": "neuro-scan-frontend:build:development"
