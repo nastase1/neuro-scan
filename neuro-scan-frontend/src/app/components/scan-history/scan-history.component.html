@@ -3,11 +3,13 @@
 >
   <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-8 animate-slide-up">
-      <div class="flex items-center space-x-4">
+    <div
+      class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4 animate-slide-up"
+    >
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3">
         <button
           routerLink="/dashboard"
-          class="flex items-center space-x-2 text-gray-400 hover:text-cyan-400 transition-all"
+          class="flex items-center space-x-2 text-gray-400 hover:text-cyan-400 transition-all self-start"
         >
           <svg
             class="w-5 h-5"
@@ -24,10 +26,10 @@
           </svg>
           <span>Dashboard</span>
         </button>
-        <span class="text-gray-600">/</span>
+        <span class="hidden sm:block text-gray-600">/</span>
         <div class="flex items-center space-x-3">
           <div
-            class="w-10 h-10 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/50"
+            class="w-10 h-10 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/50 flex-shrink-0"
           >
             <svg
               class="w-5 h-5 text-white"
@@ -44,8 +46,10 @@
             </svg>
           </div>
           <div>
-            <h1 class="text-2xl font-bold text-white">My Scan History</h1>
-            <p class="text-gray-400 text-sm">
+            <h1 class="text-xl sm:text-2xl font-bold text-white">
+              My Scan History
+            </h1>
+            <p class="text-gray-400 text-sm hidden sm:block">
               All MRI scans uploaded by you or your doctor
             </p>
           </div>
@@ -54,7 +58,7 @@
 
       <!-- Total count badge -->
       @if (!isLoading()) {
-        <div class="glass-card px-4 py-2 text-sm">
+        <div class="glass-card px-4 py-2 text-sm self-start sm:self-auto">
           <span class="text-gray-400">Total:</span>
           <span class="text-cyan-400 font-bold ml-1">{{
             filteredScans().length

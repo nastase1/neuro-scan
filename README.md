@@ -68,6 +68,42 @@ NeuroScan/
    - Swagger UI: http://localhost:5000/swagger
    - Python AI Service: http://localhost:8000
 
+## Public Domain Access (Anywhere)
+
+If you want the app reachable from anywhere (not just your local network), use the included Cloudflare Tunnel Docker service.
+
+Important:
+
+- You must own and control a domain to attach it.
+- You cannot claim `neuroscan.com` unless it is registered to your account.
+
+### 1. Prepare domain in Cloudflare
+
+1. Add your domain to Cloudflare DNS.
+2. In Cloudflare Zero Trust, create a Tunnel.
+3. Add a Public Hostname for your app (for example `app.yourdomain.com`) pointing to `http://frontend:80`.
+4. Copy the tunnel token.
+
+### 2. Add token to environment
+
+In `.env`:
+
+```env
+CLOUDFLARE_TUNNEL_TOKEN=your-tunnel-token-here
+```
+
+### 3. Start stack with public profile
+
+```bash
+docker compose --profile public up -d --build
+```
+
+### 4. Open your domain
+
+Use your configured hostname (for example `https://app.yourdomain.com`).
+
+As long as Docker is running on your machine and internet is available, the app remains reachable.
+
 ### Option 2: Run Locally
 
 1. **Set up PostgreSQL database**

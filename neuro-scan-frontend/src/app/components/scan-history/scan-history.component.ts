@@ -124,7 +124,8 @@ export class ScanHistoryComponent implements OnInit {
   }
 
   formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    const utc = /[Z+]/.test(dateString) ? dateString : dateString + 'Z';
+    return new Date(utc).toLocaleDateString('en-US', {
       year: 'numeric', month: 'short', day: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });

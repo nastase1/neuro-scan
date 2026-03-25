@@ -202,7 +202,9 @@ export class PatientDetailComponent implements OnInit {
 
   // Helper methods
   formatDate(dateString: string): string {
-    const date = new Date(dateString);
+    // Ensure UTC dates are parsed correctly (append Z if no timezone info)
+    const utc = /[Z+]/.test(dateString) ? dateString : dateString + 'Z';
+    const date = new Date(utc);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',

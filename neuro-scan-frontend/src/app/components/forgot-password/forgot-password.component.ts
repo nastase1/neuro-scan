@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { APP_VERSION } from '../../config/app-version';
 
 @Component({
   selector: 'app-forgot-password',
@@ -27,6 +28,7 @@ export class ForgotPasswordComponent {
   isLoading = signal(false);
   errorMessage = signal('');
   successMessage = signal('');
+  readonly appVersion = APP_VERSION;
 
   constructor(
     private authService: AuthService,

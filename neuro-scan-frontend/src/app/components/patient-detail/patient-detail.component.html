@@ -71,16 +71,18 @@
         class="flex flex-col md:flex-row md:items-center md:justify-between gap-6"
       >
         <!-- Patient Info -->
-        <div class="flex items-center space-x-6">
+        <div class="flex items-center space-x-4">
           <div
-            class="w-20 h-20 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-cyan-500/50"
+            class="w-14 h-14 sm:w-20 sm:h-20 flex-shrink-0 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-cyan-500/50"
           >
-            <span class="text-white font-bold text-3xl">{{
+            <span class="text-white font-bold text-xl sm:text-3xl">{{
               getPatientInitials()
             }}</span>
           </div>
-          <div>
-            <h1 class="text-3xl font-bold text-white mb-2 glow-text">
+          <div class="min-w-0">
+            <h1
+              class="text-xl sm:text-3xl font-bold text-white mb-2 glow-text truncate"
+            >
               {{ patient()!.firstName }} {{ patient()!.lastName }}
             </h1>
             <div
@@ -356,9 +358,11 @@
       <div
         *ngFor="let scan of paginatedScans()"
         (click)="viewScanDetails(scan.id)"
-        class="glass-card glass-card-hover p-6 cursor-pointer group"
+        class="glass-card glass-card-hover p-4 sm:p-6 cursor-pointer group"
       >
-        <div class="flex items-center justify-between">
+        <div
+          class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+        >
           <!-- Scan Info -->
           <div class="flex items-center space-x-4 flex-1 min-w-0">
             <div
@@ -414,16 +418,16 @@
           </div>
 
           <!-- Actions -->
-          <div class="flex items-center space-x-2">
+          <div class="flex items-center justify-end space-x-2 flex-shrink-0">
             <button
               (click)="viewScanDetails(scan.id)"
-              class="px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-all text-sm font-semibold"
+              class="px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-all text-sm font-semibold whitespace-nowrap"
             >
               View Details
             </button>
             <button
               (click)="deleteScan(scan.id, $event)"
-              class="p-2 glass-card hover:bg-red-500/20 text-red-400 rounded-lg transition-all"
+              class="p-2 glass-card hover:bg-red-500/20 text-red-400 rounded-lg transition-all flex-shrink-0"
             >
               <svg
                 class="w-5 h-5"

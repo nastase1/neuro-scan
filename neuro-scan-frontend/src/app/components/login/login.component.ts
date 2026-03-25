@@ -1,9 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { finalize } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { LoginRequest } from '../../models/api.models';
+import { APP_VERSION } from '../../config/app-version';
 
 @Component({
   selector: 'app-login',
@@ -18,9 +20,10 @@ export class LoginComponent {
     password: ''
   };
 
-  isLoading = false;
-  errorMessage = '';
+  isLoading = signal(false);
+  errorMessage = signal('');
   showPassword = false;
+  readonly appVersion = APP_VERSION;
 
   constructor(
     private authService: AuthService,
@@ -34,26 +37,28 @@ export class LoginComponent {
 
   onSubmit(): void {
     if (!this.loginRequest.email || !this.loginRequest.password) {
-      this.errorMessage = 'Please fill in all fields';
+      this.errorMessage.set('Please fill in all fields');
       return;
     }
 
-    this.isLoading = true;
-    this.errorMessage = '';
+    this.isLoading.set(true);
+    this.errorMessage.set('');
 
-    this.authService.login(this.loginRequest).subscribe({
+    this.authService.login(this.loginRequest).pipe(
+      finalize(() => this.isLoading.set(false))
+    ).subscribe({
       next: (response) => {
         if (response.success) {
           this.router.navigate([this.authService.getHomeRoute()]);
         } else {
-          this.errorMessage = response.message || 'Login failed';
-          this.isLoading = false;
+          this.errorMessage.set(response.message || 'Invalid email or password');
         }
       },
       error: (error) => {
         console.error('Login error:', error);
-        this.errorMessage = error.error?.message || 'Invalid email or password';
-        this.isLoading = false;
+        this.errorMessage.set(
+          error.error?.message || error.error?.Message || 'Invalid email or password. Please try again.'
+        );
       }
     });
   }

@@ -706,8 +706,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   getAsymmetryStatus(): 'normal' | 'warning' | 'critical' {
-    if (this.asymmetryIndex() < 10) return 'normal';
-    if (this.asymmetryIndex() < 15) return 'warning';
+    if (this.asymmetryIndex() < 3) return 'normal';
+    if (this.asymmetryIndex() < 10) return 'warning';
     return 'critical';
   }
 

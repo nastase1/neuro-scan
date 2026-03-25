@@ -54,6 +54,18 @@ services:
     networks:
       - neuroscan-network
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: neuroscan-cloudflared
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - frontend
+    restart: unless-stopped
+    networks:
+      - neuroscan-network
+    profiles:
+      - public
+
 volumes:
   sqlite_data:
   api_uploads:

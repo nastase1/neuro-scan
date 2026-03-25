@@ -569,18 +569,21 @@
                 <span class="text-sm text-gray-400">Asymmetry Index</span>
                 <span
                   class="text-xs font-semibold uppercase"
-                  [class.text-emerald-400]="asymmetryIndex() < 5"
+                  [class.text-emerald-400]="asymmetryIndex() < 3"
+                  [class.text-cyan-400]="asymmetryIndex() >= 3 && asymmetryIndex() < 5"
                   [class.text-yellow-400]="
                     asymmetryIndex() >= 5 && asymmetryIndex() < 10
                   "
                   [class.text-red-400]="asymmetryIndex() >= 10"
                 >
                   {{
-                    asymmetryIndex() < 5
+                    asymmetryIndex() < 3
                       ? "NORMAL"
-                      : asymmetryIndex() < 10
-                        ? "ELEVATED"
-                        : "HIGH"
+                      : asymmetryIndex() < 5
+                        ? "MILD"
+                        : asymmetryIndex() < 10
+                          ? "ELEVATED"
+                          : "HIGH"
                   }}
                 </span>
               </div>
@@ -592,8 +595,10 @@
                 <div
                   class="h-full rounded-full"
                   [class.bg-gradient-to-r]="true"
-                  [class.from-emerald-500]="asymmetryIndex() < 5"
-                  [class.to-teal-500]="asymmetryIndex() < 5"
+                  [class.from-emerald-500]="asymmetryIndex() < 3"
+                  [class.to-teal-500]="asymmetryIndex() < 3"
+                  [class.from-cyan-400]="asymmetryIndex() >= 3 && asymmetryIndex() < 5"
+                  [class.to-cyan-600]="asymmetryIndex() >= 3 && asymmetryIndex() < 5"
                   [class.from-yellow-500]="
                     asymmetryIndex() >= 5 && asymmetryIndex() < 10
                   "
@@ -838,10 +843,12 @@
 
       <!-- Medical Report Section -->
       <div class="glass-card glass-card-hover p-8 mb-8">
-        <div class="flex items-center justify-between mb-6">
+        <div
+          class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"
+        >
           <div class="flex items-center space-x-3">
             <div
-              class="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/50"
+              class="w-12 h-12 flex-shrink-0 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/50"
             >
               <svg
                 class="w-6 h-6 text-white"
@@ -866,7 +873,7 @@
           </div>
           <button
             (click)="exportToPdf()"
-            class="px-4 py-2 bg-gradient-to-r from-cyan-500 to-teal-500 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-cyan-500/50 transition-all"
+            class="self-start sm:self-auto px-4 py-2 bg-gradient-to-r from-cyan-500 to-teal-500 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-cyan-500/50 transition-all"
           >
             <svg
               class="w-5 h-5 inline mr-2"
@@ -893,7 +900,7 @@
         </div>
 
         <div
-          class="mt-6 pt-6 border-t border-slate-700 flex items-center justify-between"
+          class="mt-6 pt-6 border-t border-slate-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
         >
           <div class="flex items-center space-x-2 text-sm text-gray-400">
             <svg
@@ -913,12 +920,14 @@
               >Generated: {{ analysisResult()?.analyzedAt || "Just now" }}</span
             >
           </div>
-          <div class="flex items-center gap-3 relative z-[20]">
+          <div
+            class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 relative z-[20]"
+          >
             <button
               *ngIf="isDoctor() && scanId"
               type="button"
               [routerLink]="['/review', scanId]"
-              class="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-purple-500/40 hover:scale-105 transition-all pointer-events-auto"
+              class="px-6 py-3 sm:py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-purple-500/40 hover:scale-105 transition-all pointer-events-auto text-center"
             >
               <svg
                 class="w-4 h-4 inline mr-1.5"
@@ -938,7 +947,7 @@
             <button
               type="button"
               (click)="resetAnalysis()"
-              class="px-6 py-2 glass-card glass-card-hover text-cyan-400 font-semibold rounded-lg hover:scale-105 transition-all pointer-events-auto"
+              class="px-6 py-3 sm:py-2 glass-card glass-card-hover text-cyan-400 font-semibold rounded-lg hover:scale-105 transition-all pointer-events-auto text-center"
             >
               Analyze Another Scan
             </button>
