@@ -183,9 +183,52 @@
       </div>
 
       <div *ngIf="sliceCount() > 0">
+        <!-- Canvas + image -->
+        <div
+          #paintContainer
+          class="paint-container bg-black rounded-xl overflow-hidden border border-slate-700/60 mb-4 aspect-square"
+          [class.pan-active]="isPanning"
+          (mousedown)="onPanStart($event)"
+          (mousemove)="onPanMove($event)"
+          (mouseup)="onPanEnd()"
+          (mouseleave)="onPanEnd()"
+          (contextmenu)="onSegmentationContextMenu($event)"
+          (wheel)="onSegmentationWheel($event)"
+        >
+          <div
+            class="seg-zoom-wrapper"
+            [style.transform]="
+              'translate(' +
+              panX() +
+              'px, ' +
+              panY() +
+              'px) scale(' +
+              zoom() +
+              ')'
+            "
+          >
+            <img
+              *ngIf="segSliceUrl()"
+              [src]="segSliceUrl()"
+              alt="Segmentation slice"
+              (load)="initCanvas($event)"
+              class="w-full h-full object-contain segmentation-image"
+            />
+            <canvas
+              #paintCanvas
+              class="paint-canvas"
+              (mousedown)="onMouseDown($event)"
+              (mousemove)="onMouseMove($event)"
+              (mouseup)="onMouseUp()"
+              (mouseleave)="onMouseLeave()"
+            >
+            </canvas>
+          </div>
+        </div>
+
         <!-- Paint tools -->
         <div
-          class="flex flex-wrap items-center gap-3 mb-4 p-3 bg-slate-800/60 rounded-xl border border-slate-700/60"
+          class="flex flex-wrap items-center gap-3 mt-4 p-3 bg-slate-800/60 rounded-xl border border-slate-700/60"
         >
           <!-- Brush colors -->
           <div class="flex gap-2">
@@ -275,50 +318,7 @@
           </span>
         </div>
 
-        <!-- Canvas + image -->
-        <div
-          #paintContainer
-          class="paint-container bg-black rounded-xl overflow-hidden border border-slate-700/60 mb-4 aspect-square"
-          [class.pan-active]="isPanning"
-          (mousedown)="onPanStart($event)"
-          (mousemove)="onPanMove($event)"
-          (mouseup)="onPanEnd()"
-          (mouseleave)="onPanEnd()"
-          (contextmenu)="onSegmentationContextMenu($event)"
-          (wheel)="onSegmentationWheel($event)"
-        >
-          <div
-            class="seg-zoom-wrapper"
-            [style.transform]="
-              'translate(' +
-              panX() +
-              'px, ' +
-              panY() +
-              'px) scale(' +
-              zoom() +
-              ')'
-            "
-          >
-            <img
-              *ngIf="segSliceUrl()"
-              [src]="segSliceUrl()"
-              alt="Segmentation slice"
-              (load)="initCanvas($event)"
-              class="w-full h-full object-contain segmentation-image"
-            />
-            <canvas
-              #paintCanvas
-              class="paint-canvas"
-              (mousedown)="onMouseDown($event)"
-              (mousemove)="onMouseMove($event)"
-              (mouseup)="onMouseUp()"
-              (mouseleave)="onMouseLeave()"
-            >
-            </canvas>
-          </div>
-        </div>
-
-        <p class="text-[11px] text-gray-500 mb-4">
+        <p class="text-[11px] text-gray-500 mb-4 mt-2">
           Scroll to zoom, right-click drag to pan ({{
             zoom() | number: "1.0-1"
           }}x)

@@ -169,6 +169,14 @@ export class HomeComponent implements OnInit {
     return latestWithRisk?.analysisResult?.epilepsyRiskLevel ?? 'Pending';
   }
 
+  get avgRiskLevel(): string {
+    const score = this.avgRiskScore;
+    if (score === 0) return 'Pending';
+    if (score >= 70) return 'High';
+    if (score >= 40) return 'Moderate';
+    return 'Low';
+  }
+
   get faqCategories(): FaqCategory[] {
     if (this.authService.isDoctor()) {
       return ['Workflow', 'Interpretation', 'Security', 'Presentation'];
