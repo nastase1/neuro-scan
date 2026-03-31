@@ -74,4 +74,30 @@ Please generate a structured clinical report with the following sections:
             .GetProperty("content")
             .GetString() ?? "Report generation failed";
     }
+
+    public async Task<string> GenerateEvolutionReportAsync(string userPrompt, string systemPrompt)
+    {
+        var requestBody = new
+        {
+            model = "gpt-4",
+            messages = new[]
+            {
+                new { role = "system", content = systemPrompt },
+                new { role = "user", content = userPrompt }
+            },
+            temperature = 0.3
+        };
+
+        var response = await _httpClient.PostAsJsonAsync("https://api.openai.com/v1/chat/completions", requestBody);
+        response.EnsureSuccessStatusCode();
+
+        var jsonResponse = await response.Content.ReadAsStringAsync();
+        var openAiResponse = JsonSerializer.Deserialize<JsonElement>(jsonResponse);
+
+        return openAiResponse
+            .GetProperty("choices")[0]
+            .GetProperty("message")
+            .GetProperty("content")
+            .GetString() ?? "Evolution report generation failed";
+    }
 }

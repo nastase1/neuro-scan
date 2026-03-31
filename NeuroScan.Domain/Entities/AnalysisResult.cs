@@ -14,9 +14,28 @@ public class AnalysisResult : BaseEntity
     public double EpilepsyRiskScore { get; set; }   // 0–100
     public string EpilepsyRiskLevel { get; set; } = string.Empty; // Low / Moderate / High
 
+    // Tumor Detection (BraTS SegResNet)
+    public bool TumorDetected { get; set; }
+    public double TumorVolume { get; set; }         // cm³
+    public double TumorSurfaceArea { get; set; }    // cm²
+
+    // Cortex Thickness
+    public double CortexThicknessAvg { get; set; }  // voxel units
+    public double CortexThicknessMin { get; set; }
+    public double CortexThicknessMax { get; set; }
+
+    // White Matter Density
+    public double WmDensityScore { get; set; }      // 0–100
+    public double WmMeanIntensity { get; set; }
+    public double WmCoefficientOfVariation { get; set; }
+
     // Segmentation Visualisation
     public string? SegmentationImagePath { get; set; } // Directory path for slice PNGs
     public int SegmentationSliceCount { get; set; }   // Number of saved slice images
+
+    // Tumor Overlay Visualisation
+    public string? TumorOverlayImagePath { get; set; }
+    public int TumorOverlaySliceCount { get; set; }
 
     // Doctor Review
     public bool? DoctorApproved { get; set; }

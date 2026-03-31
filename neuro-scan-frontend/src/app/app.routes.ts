@@ -5,6 +5,8 @@ import { RegisterComponent } from './components/register/register.component';
 import { PatientListComponent } from './components/patient-list/patient-list.component';
 import { PatientFormComponent } from './components/patient-form/patient-form.component';
 import { PatientDetailComponent } from './components/patient-detail/patient-detail.component';
+import { PatientEvolutionComponent } from './components/patient-evolution/patient-evolution.component';
+import { BrainViewerComponent } from './components/brain-viewer/brain-viewer.component';
 import { ForgotPasswordComponent } from './components/forgot-password/forgot-password.component';
 import { ScanHistoryComponent } from './components/scan-history/scan-history.component';
 import { DoctorReviewComponent } from './components/doctor-review/doctor-review.component';
@@ -58,6 +60,21 @@ export const routes: Routes = [
     path: 'review/:scanId',
     component: DoctorReviewComponent,
     canActivate: [authGuard, doctorGuard]
+  },
+  {
+    path: 'evolution',
+    component: PatientEvolutionComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'patients/:id/evolution',
+    component: PatientEvolutionComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'brain-viewer/:scanId',
+    component: BrainViewerComponent,
+    canActivate: [authGuard]
   },
   {
     path: 'admin',

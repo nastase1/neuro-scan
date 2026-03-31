@@ -425,6 +425,13 @@
             >
               View Details
             </button>
+            <a
+              [routerLink]="['/brain-viewer', scan.id]"
+              class="px-4 py-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-all text-sm font-semibold whitespace-nowrap"
+              (click)="$event.stopPropagation()"
+            >
+              3D View
+            </a>
             <button
               (click)="deleteScan(scan.id, $event)"
               class="p-2 glass-card hover:bg-red-500/20 text-red-400 rounded-lg transition-all flex-shrink-0"

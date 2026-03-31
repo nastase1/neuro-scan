@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NeuroScan.Application.IServices;
+using NeuroScan.Domain.Entities;
 namespace NeuroScan.API.Controllers;
 
 [ApiController]
@@ -10,11 +11,13 @@ namespace NeuroScan.API.Controllers;
 public class MriScanController : ControllerBase
 {
     private readonly IMriScanService _mriScanService;
+    private readonly IAiAnalysisService _aiAnalysisService;
     private readonly ILogger<MriScanController> _logger;
 
-    public MriScanController(IMriScanService mriScanService, ILogger<MriScanController> logger)
+    public MriScanController(IMriScanService mriScanService, IAiAnalysisService aiAnalysisService, ILogger<MriScanController> logger)
     {
         _mriScanService = mriScanService;
+        _aiAnalysisService = aiAnalysisService;
         _logger = logger;
     }
 
@@ -80,6 +83,73 @@ public class MriScanController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error uploading MRI scan");
+            return StatusCode(500, new { error = $"Upload failed: {ex.Message}" });
+        }
+    }
+
+    /// <summary>
+    /// Upload a tumor scan with 4 MRI modalities (Doctor only)
+    /// </summary>
+    [HttpPost("upload-tumor")]
+    [Authorize(Roles = "Doctor")]
+    [RequestSizeLimit(500 * 1024 * 1024)]
+    public async Task<ActionResult<MriScanResponseDTO>> UploadTumorScan([FromForm] MriScanUploadTumorDTO uploadDto)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var files = new[] { uploadDto.T1File, uploadDto.T1ceFile, uploadDto.T2File, uploadDto.FlairFile };
+        foreach (var file in files)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest(new { error = "All 4 MRI modality files are required" });
+
+            if (!file.FileName.EndsWith(".nii", StringComparison.OrdinalIgnoreCase) &&
+                !file.FileName.EndsWith(".nii.gz", StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { error = $"Only .nii or .nii.gz files are allowed: {file.FileName}" });
+        }
+
+        try
+        {
+            var result = await _mriScanService.UploadAndProcessTumorScanAsync(uploadDto, userId);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading tumor scan");
+            return StatusCode(500, new { error = $"Upload failed: {ex.Message}" });
+        }
+    }
+
+    /// <summary>
+    /// Upload a tumor scan with 4 MRI modalities (Standard User)
+    /// </summary>
+    [HttpPost("upload-self-tumor")]
+    [Authorize(Roles = "StandardUser")]
+    [RequestSizeLimit(500 * 1024 * 1024)]
+    public async Task<ActionResult<MriScanResponseDTO>> UploadSelfTumorScan(
+        [FromForm] IFormFile t1, [FromForm] IFormFile t1ce, [FromForm] IFormFile t2, [FromForm] IFormFile flair, [FromForm] string? notes = null)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var files = new[] { t1, t1ce, t2, flair };
+        foreach (var file in files)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest(new { error = "All 4 MRI modality files are required" });
+
+            if (!file.FileName.EndsWith(".nii", StringComparison.OrdinalIgnoreCase) &&
+                !file.FileName.EndsWith(".nii.gz", StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { error = $"Only .nii or .nii.gz files are allowed: {file.FileName}" });
+        }
+
+        try
+        {
+            var result = await _mriScanService.UploadSelfTumorScanAsync(t1, t1ce, t2, flair, notes, userId);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading tumor scan");
             return StatusCode(500, new { error = $"Upload failed: {ex.Message}" });
         }
     }
@@ -208,6 +278,35 @@ public class MriScanController : ControllerBase
     }
 
     /// <summary>
+    /// Get a single tumor overlay slice by index (grayscale brain + red tumor).
+    /// </summary>
+    [HttpGet("{scanId}/tumor-overlay/{sliceIndex:int}")]
+    public async Task<ActionResult> GetTumorOverlaySlice(Guid scanId, int sliceIndex)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userRole = User.FindFirstValue(ClaimTypes.Role);
+
+        var scan = await _mriScanService.GetScanDetailsAsync(scanId, userId, userRole == "Doctor");
+        if (scan == null) return NotFound(new { error = "Scan not found or access denied" });
+
+        var overlayDir = scan.AnalysisResult?.TumorOverlayImagePath;
+        var overlayCount = scan.AnalysisResult?.TumorOverlaySliceCount ?? 0;
+
+        if (string.IsNullOrEmpty(overlayDir) || overlayCount == 0)
+            return NotFound(new { error = "Tumor overlay slices not available" });
+
+        if (sliceIndex < 0 || sliceIndex >= overlayCount)
+            return BadRequest(new { error = $"Slice index must be between 0 and {overlayCount - 1}" });
+
+        var slicePath = Path.Combine(overlayDir, $"{sliceIndex}.png");
+        if (!System.IO.File.Exists(slicePath))
+            return NotFound(new { error = "Slice file not found" });
+
+        var overlayBytes = await System.IO.File.ReadAllBytesAsync(slicePath);
+        return File(overlayBytes, "image/png");
+    }
+
+    /// <summary>
     /// Get count of raw grayscale MRI slices (triggers generation on first call). Doctor only.
     /// </summary>
     [HttpGet("{scanId}/raw-slice/count")]
@@ -283,6 +382,75 @@ public class MriScanController : ControllerBase
         var bytes = await _mriScanService.GetCorrectedSliceAsync(scanId, sliceIndex, doctorId);
         if (bytes == null) return NoContent();
         return File(bytes, "image/png");
+    }
+
+    /// <summary>
+    /// Get patient evolution data with longitudinal analysis (Doctor or linked Standard User)
+    /// </summary>
+    [HttpGet("patient/{patientId}/evolution")]
+    [Authorize(Roles = "Doctor,StandardUser")]
+    public async Task<ActionResult<PatientEvolutionDTO>> GetPatientEvolution(Guid patientId)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userRole = User.FindFirstValue(ClaimTypes.Role);
+
+        try
+        {
+            var evolution = await _mriScanService.GetPatientEvolutionAsync(patientId, userId, userRole == "Doctor");
+            return Ok(evolution);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting patient evolution");
+            return StatusCode(500, new { error = "Failed to retrieve evolution data" });
+        }
+    }
+
+    /// <summary>
+    /// Get 3D mesh data for a scan (brain, tumor, GM, WM surfaces)
+    /// </summary>
+    [HttpGet("{scanId}/3d-mesh")]
+    [Authorize(Roles = "Doctor,StandardUser")]
+    public async Task<ActionResult<MeshDataResponseDTO>> Get3DMesh(Guid scanId)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userRole = User.FindFirstValue(ClaimTypes.Role);
+
+        var scan = await _mriScanService.GetScanDetailsAsync(scanId, userId, userRole == "Doctor");
+        if (scan == null)
+            return NotFound(new { error = "Scan not found or access denied" });
+
+        try
+        {
+            MeshDataResponseDTO meshData;
+
+            if (scan.ScanType == ScanType.TumorMultiChannel
+                && !string.IsNullOrEmpty(scan.StoredFilePathT1ce)
+                && !string.IsNullOrEmpty(scan.StoredFilePathT2)
+                && !string.IsNullOrEmpty(scan.StoredFilePathFlair))
+            {
+                meshData = await _aiAnalysisService.Get3DMeshTumorAsync(
+                    scan.StoredFilePath,
+                    scan.StoredFilePathT1ce,
+                    scan.StoredFilePathT2,
+                    scan.StoredFilePathFlair);
+            }
+            else
+            {
+                meshData = await _aiAnalysisService.Get3DMeshAsync(scan.StoredFilePath);
+            }
+
+            return Ok(meshData);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating 3D mesh");
+            return StatusCode(500, new { error = "Failed to generate 3D mesh data" });
+        }
     }
 }
 

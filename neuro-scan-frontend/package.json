@@ -27,7 +27,10 @@
     "@angular/platform-browser": "^20.1.0",
     "@angular/router": "^20.1.0",
     "@angular/service-worker": "^20.3.16",
+    "chart.js": "^4.5.1",
     "jspdf": "^4.1.0",
+    "ng2-charts": "^10.0.0",
+    "plotly.js-dist-min": "^3.4.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

@@ -1,0 +1,698 @@
+<div
+  class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6"
+>
+  <!-- Patient Selector (Doctors only, when no patient selected) -->
+  @if (showPatientSelector()) {
+    <div class="max-w-6xl mx-auto">
+      <h1 class="text-3xl font-bold text-white mb-2">
+        <span class="text-cyan-400">Evolution Analysis</span>
+      </h1>
+      <p class="text-gray-400 mb-6">Select a patient to view evolution data</p>
+
+      @if (error()) {
+        <div
+          class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 mb-6"
+        >
+          {{ error() }}
+        </div>
+      }
+
+      @if (patients().length === 0 && !error()) {
+        <div class="flex justify-center items-center h-32">
+          <div
+            class="animate-spin rounded-full h-10 w-10 border-4 border-cyan-500 border-t-transparent"
+          ></div>
+        </div>
+      }
+
+      @if (patients().length > 0) {
+        <!-- Search & Sort Bar -->
+        <div class="flex flex-col sm:flex-row gap-3 mb-6">
+          <div class="relative flex-1">
+            <svg
+              class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search by name, ID, or medical record..."
+              [value]="patientSearch()"
+              (input)="onPatientSearchChange($any($event.target).value)"
+              class="w-full pl-10 pr-4 py-2.5 bg-slate-800/60 border border-slate-700/50 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition-colors"
+            />
+          </div>
+          <div class="flex gap-2">
+            <button
+              (click)="togglePatientSort('name')"
+              class="px-4 py-2.5 rounded-xl text-sm font-medium border transition-all duration-200"
+              [class.bg-cyan-500/20]="patientSortField() === 'name'"
+              [class.text-cyan-400]="patientSortField() === 'name'"
+              [class.border-cyan-500/50]="patientSortField() === 'name'"
+              [class.bg-slate-800/60]="patientSortField() !== 'name'"
+              [class.text-gray-400]="patientSortField() !== 'name'"
+              [class.border-slate-700/50]="patientSortField() !== 'name'"
+            >
+              Name
+              {{
+                patientSortField() === "name"
+                  ? patientSortAsc()
+                    ? "↑"
+                    : "↓"
+                  : ""
+              }}
+            </button>
+            <button
+              (click)="togglePatientSort('dob')"
+              class="px-4 py-2.5 rounded-xl text-sm font-medium border transition-all duration-200"
+              [class.bg-cyan-500/20]="patientSortField() === 'dob'"
+              [class.text-cyan-400]="patientSortField() === 'dob'"
+              [class.border-cyan-500/50]="patientSortField() === 'dob'"
+              [class.bg-slate-800/60]="patientSortField() !== 'dob'"
+              [class.text-gray-400]="patientSortField() !== 'dob'"
+              [class.border-slate-700/50]="patientSortField() !== 'dob'"
+            >
+              Date of Birth
+              {{
+                patientSortField() === "dob"
+                  ? patientSortAsc()
+                    ? "↑"
+                    : "↓"
+                  : ""
+              }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Results count -->
+        <p class="text-sm text-gray-500 mb-4">
+          {{ filteredPatients().length }} patient{{
+            filteredPatients().length === 1 ? "" : "s"
+          }}
+          found
+          @if (patientSearch()) {
+            <span>
+              for "<span class="text-cyan-400">{{ patientSearch() }}</span
+              >"</span
+            >
+          }
+        </p>
+
+        <!-- Patient Grid -->
+        @if (filteredPatients().length === 0) {
+          <div
+            class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-8 text-center"
+          >
+            <svg
+              class="w-12 h-12 mx-auto mb-3 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <p class="text-gray-400">No patients match your search.</p>
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            @for (patient of paginatedPatients(); track patient.id) {
+              <button
+                (click)="selectPatient(patient.id)"
+                class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 text-left hover:border-cyan-500/50 hover:bg-slate-700/30 transition-all duration-300 group"
+              >
+                <div class="flex items-center gap-3 mb-3">
+                  <div
+                    class="w-11 h-11 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
+                  >
+                    {{ patient.firstName?.charAt(0)
+                    }}{{ patient.lastName?.charAt(0) }}
+                  </div>
+                  <div class="min-w-0">
+                    <div
+                      class="text-white font-semibold group-hover:text-cyan-400 transition-colors truncate"
+                    >
+                      {{ patient.firstName }} {{ patient.lastName }}
+                    </div>
+                    <div class="text-xs text-gray-500 truncate">
+                      MRN: {{ patient.medicalRecordNumber }}
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="flex items-center justify-between text-xs text-gray-400"
+                >
+                  <span>{{ patient.dateOfBirth | date: "mediumDate" }}</span>
+                  <svg
+                    class="w-4 h-4 text-gray-600 group-hover:text-cyan-400 transition-colors"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </div>
+              </button>
+            }
+          </div>
+
+          <!-- Pagination -->
+          @if (totalPatientPages() > 1) {
+            <div class="flex items-center justify-center gap-2 mt-6">
+              <button
+                (click)="goToPatientPage(patientPage() - 1)"
+                [disabled]="patientPage() === 1"
+                class="px-3 py-2 rounded-lg text-sm border border-slate-700/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-700/50 text-gray-400"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+
+              @for (page of [].constructor(totalPatientPages()); track $index) {
+                <button
+                  (click)="goToPatientPage($index + 1)"
+                  class="w-9 h-9 rounded-lg text-sm font-medium border transition-all duration-200"
+                  [class.bg-cyan-500/20]="patientPage() === $index + 1"
+                  [class.text-cyan-400]="patientPage() === $index + 1"
+                  [class.border-cyan-500/50]="patientPage() === $index + 1"
+                  [class.text-gray-400]="patientPage() !== $index + 1"
+                  [class.border-slate-700/50]="patientPage() !== $index + 1"
+                  [class.hover:bg-slate-700/50]="patientPage() !== $index + 1"
+                >
+                  {{ $index + 1 }}
+                </button>
+              }
+
+              <button
+                (click)="goToPatientPage(patientPage() + 1)"
+                [disabled]="patientPage() === totalPatientPages()"
+                class="px-3 py-2 rounded-lg text-sm border border-slate-700/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-700/50 text-gray-400"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+
+  <!-- Evolution Content (shown when patient is selected) -->
+  @if (!showPatientSelector()) {
+    <!-- Header -->
+    <div class="max-w-7xl mx-auto mb-6">
+      <button
+        (click)="goBack()"
+        class="text-cyan-400 hover:text-cyan-300 mb-4 flex items-center gap-2 transition-colors"
+      >
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
+        {{
+          hasRouteParam
+            ? "Back to Patient"
+            : isDoctorUser
+              ? "Back to Patient List"
+              : "Back to Home"
+        }}
+      </button>
+      <h1 class="text-3xl font-bold text-white">
+        <span class="text-cyan-400">Evolution Analysis</span>
+        @if (evolution()) {
+          — {{ evolution()!.patientName }}
+        }
+      </h1>
+      <p class="text-gray-400 mt-1">
+        Longitudinal brain metrics tracking across MRI scans
+      </p>
+    </div>
+
+    <!-- Loading -->
+    @if (isLoading()) {
+      <div class="flex justify-center items-center h-64">
+        <div
+          class="animate-spin rounded-full h-12 w-12 border-4 border-cyan-500 border-t-transparent"
+        ></div>
+      </div>
+    }
+
+    <!-- Error -->
+    @if (error()) {
+      <div
+        class="max-w-7xl mx-auto bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400"
+      >
+        {{ error() }}
+      </div>
+    }
+
+    @if (evolution() && !isLoading()) {
+      <!-- Summary Cards -->
+      <div
+        class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6"
+      >
+        <div
+          class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 text-center"
+        >
+          <div class="text-2xl font-bold text-cyan-400">
+            {{ summary()?.totalScans }}
+          </div>
+          <div class="text-xs text-gray-400 mt-1">Total Scans</div>
+        </div>
+        <div
+          class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 text-center"
+        >
+          <div class="text-2xl font-bold text-purple-400">
+            {{ summary()?.monthsSpan?.toFixed(1) }}
+          </div>
+          <div class="text-xs text-gray-400 mt-1">Months Span</div>
+        </div>
+        <div
+          class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 text-center"
+        >
+          <div
+            class="text-2xl font-bold"
+            [ngClass]="
+              getDegradationColor(summary()?.degradationLevel ?? 'Stable')
+            "
+          >
+            {{ summary()?.degradationLevel ?? "N/A" }}
+          </div>
+          <div class="text-xs text-gray-400 mt-1">Degradation Level</div>
+        </div>
+        <div
+          class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 text-center"
+        >
+          <div
+            class="text-2xl font-bold"
+            [ngClass]="getDeltaColor(summary()?.brainVolumeDelta ?? 0)"
+          >
+            {{ formatDelta(summary()?.brainVolumeDelta ?? 0) }}
+          </div>
+          <div class="text-xs text-gray-400 mt-1">Brain Vol Δ (cm³)</div>
+        </div>
+        <div
+          class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 text-center"
+        >
+          <div
+            class="text-2xl font-bold"
+            [ngClass]="getDeltaColor(summary()?.cortexThicknessDelta ?? 0)"
+          >
+            {{ formatDelta(summary()?.cortexThicknessDelta ?? 0) }}
+          </div>
+          <div class="text-xs text-gray-400 mt-1">Cortex Δ</div>
+        </div>
+        <div
+          class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 text-center"
+        >
+          <div class="text-2xl font-bold text-orange-400">
+            {{ summary()?.brainVolumeChangeRate?.toFixed(4) ?? "0" }}
+          </div>
+          <div class="text-xs text-gray-400 mt-1">cm³/month</div>
+        </div>
+      </div>
+
+      <!-- Tab Navigation -->
+      <div class="max-w-7xl mx-auto mb-6">
+        <div
+          class="flex gap-2 bg-slate-800/50 border border-slate-700/50 rounded-xl p-1.5"
+        >
+          @for (
+            tab of [
+              { key: "volumes", label: "Brain Volumes" },
+              { key: "tumor", label: "Tumor" },
+              { key: "cortex", label: "Cortex & WM" },
+              { key: "risk", label: "Risk Score" },
+              { key: "report", label: "AI Interpretation" },
+            ];
+            track tab.key
+          ) {
+            <button
+              (click)="setTab($any(tab.key))"
+              [class]="
+                activeTab() === tab.key
+                  ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50'
+                  : 'text-gray-400 hover:text-white hover:bg-slate-700/50 border-transparent'
+              "
+              class="px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-200"
+            >
+              {{ tab.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Chart Area -->
+      <div class="max-w-7xl mx-auto">
+        @if (dataPoints().length < 2) {
+          <div
+            class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-8 text-center text-gray-400"
+          >
+            <svg
+              class="w-16 h-16 mx-auto mb-4 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+            <p class="text-lg font-medium">
+              At least 2 analyzed scans are needed for evolution tracking.
+            </p>
+            <p class="text-sm mt-2">
+              Upload and analyze more MRI scans to see trends.
+            </p>
+          </div>
+        } @else {
+          <!-- Volume Chart -->
+          @if (activeTab() === "volumes") {
+            <div
+              class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6"
+            >
+              <div class="h-[400px]">
+                <canvas #volumeChart></canvas>
+              </div>
+              <!-- Delta Table -->
+              <div
+                class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-700/50"
+              >
+                <div>
+                  <div class="text-xs text-gray-500 mb-1">GM Volume Change</div>
+                  <div
+                    class="text-lg font-semibold"
+                    [ngClass]="getDeltaColor(summary()?.gmVolumeDelta ?? 0)"
+                  >
+                    {{ formatDelta(summary()?.gmVolumeDelta ?? 0) }} cm³
+                  </div>
+                </div>
+                <div>
+                  <div class="text-xs text-gray-500 mb-1">WM Volume Change</div>
+                  <div
+                    class="text-lg font-semibold"
+                    [ngClass]="getDeltaColor(summary()?.wmVolumeDelta ?? 0)"
+                  >
+                    {{ formatDelta(summary()?.wmVolumeDelta ?? 0) }} cm³
+                  </div>
+                </div>
+                <div>
+                  <div class="text-xs text-gray-500 mb-1">
+                    CSF Volume Change
+                  </div>
+                  <div
+                    class="text-lg font-semibold"
+                    [ngClass]="getDeltaColor(-(summary()?.csfVolumeDelta ?? 0))"
+                  >
+                    {{ formatDelta(summary()?.csfVolumeDelta ?? 0) }} cm³
+                  </div>
+                </div>
+                <div>
+                  <div class="text-xs text-gray-500 mb-1">Monthly Rate</div>
+                  <div class="text-lg font-semibold text-orange-400">
+                    {{ summary()?.brainVolumeChangeRate?.toFixed(4) ?? "0" }}
+                    cm³/mo
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Tumor Chart -->
+          @if (activeTab() === "tumor") {
+            <div
+              class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6"
+            >
+              <div class="h-[400px]">
+                <canvas #tumorChart></canvas>
+              </div>
+              <div
+                class="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-slate-700/50"
+              >
+                <div>
+                  <div class="text-xs text-gray-500 mb-1">
+                    Tumor Volume Change
+                  </div>
+                  <div class="text-lg font-semibold text-red-400">
+                    {{ formatDelta(summary()?.tumorVolumeDelta ?? 0) }} cm³
+                  </div>
+                </div>
+                <div>
+                  <div class="text-xs text-gray-500 mb-1">
+                    Latest Tumor Status
+                  </div>
+                  <div
+                    class="text-lg font-semibold"
+                    [ngClass]="
+                      dataPoints()[dataPoints().length - 1]?.tumorDetected
+                        ? 'text-red-400'
+                        : 'text-green-400'
+                    "
+                  >
+                    {{
+                      dataPoints()[dataPoints().length - 1]?.tumorDetected
+                        ? "Detected"
+                        : "Not Detected"
+                    }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Cortex Chart -->
+          @if (activeTab() === "cortex") {
+            <div
+              class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6"
+            >
+              <div class="h-[400px]">
+                <canvas #cortexChart></canvas>
+              </div>
+              <div
+                class="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-slate-700/50"
+              >
+                <div>
+                  <div class="text-xs text-gray-500 mb-1">
+                    Cortex Thickness Change
+                  </div>
+                  <div
+                    class="text-lg font-semibold"
+                    [ngClass]="
+                      getDeltaColor(summary()?.cortexThicknessDelta ?? 0)
+                    "
+                  >
+                    {{ formatDelta(summary()?.cortexThicknessDelta ?? 0) }}
+                  </div>
+                </div>
+                <div>
+                  <div class="text-xs text-gray-500 mb-1">
+                    WM Density Change
+                  </div>
+                  <div
+                    class="text-lg font-semibold"
+                    [ngClass]="getDeltaColor(summary()?.wmDensityDelta ?? 0)"
+                  >
+                    {{ (summary()?.wmDensityDelta ?? 0) > 0 ? "+" : ""
+                    }}{{ (summary()?.wmDensityDelta ?? 0).toFixed(1) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Risk Chart -->
+          @if (activeTab() === "risk") {
+            <div
+              class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6"
+            >
+              <div class="h-[400px]">
+                <canvas #riskChart></canvas>
+              </div>
+            </div>
+          }
+
+          <!-- AI Interpretation -->
+          @if (activeTab() === "report") {
+            <div
+              class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6"
+            >
+              @if (evolution()?.llmInterpretation) {
+                <div class="prose prose-invert max-w-none">
+                  <div class="flex items-center gap-2 mb-4">
+                    <svg
+                      class="w-6 h-6 text-cyan-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <h3 class="text-lg font-semibold text-cyan-400 m-0">
+                      AI Longitudinal Interpretation
+                    </h3>
+                  </div>
+                  <div
+                    class="whitespace-pre-wrap text-gray-300 leading-relaxed text-sm bg-slate-900/50 rounded-lg p-4 border border-slate-700/30"
+                  >
+                    {{ evolution()!.llmInterpretation }}
+                  </div>
+                </div>
+              } @else {
+                <div class="text-center text-gray-400 py-8">
+                  <p class="text-lg">AI interpretation not available.</p>
+                  <p class="text-sm mt-2">
+                    This may require an OpenAI API key to be configured.
+                  </p>
+                </div>
+              }
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Data Table -->
+      @if (dataPoints().length > 0) {
+        <div class="max-w-7xl mx-auto mt-6">
+          <div
+            class="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden"
+          >
+            <div class="p-4 border-b border-slate-700/50">
+              <h3 class="text-lg font-semibold text-white">
+                Scan Data Timeline
+              </h3>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-900/50">
+                  <tr class="text-gray-400">
+                    <th class="px-4 py-3 text-left">#</th>
+                    <th class="px-4 py-3 text-left">Date</th>
+                    <th class="px-4 py-3 text-right">Brain Vol</th>
+                    <th class="px-4 py-3 text-right">GM</th>
+                    <th class="px-4 py-3 text-right">WM</th>
+                    <th class="px-4 py-3 text-right">CSF</th>
+                    <th class="px-4 py-3 text-right">Tumor</th>
+                    <th class="px-4 py-3 text-right">Cortex</th>
+                    <th class="px-4 py-3 text-right">WM Density</th>
+                    <th class="px-4 py-3 text-right">Risk</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (dp of dataPoints(); track dp.scanId; let i = $index) {
+                    <tr
+                      class="border-t border-slate-700/30 hover:bg-slate-700/20 transition-colors"
+                    >
+                      <td class="px-4 py-3 text-gray-400">{{ i + 1 }}</td>
+                      <td class="px-4 py-3 text-gray-300">
+                        {{ dp.scanDate | date: "mediumDate" }}
+                      </td>
+                      <td class="px-4 py-3 text-right text-cyan-400 font-mono">
+                        {{ dp.totalBrainVolume.toFixed(2) }}
+                      </td>
+                      <td
+                        class="px-4 py-3 text-right text-purple-400 font-mono"
+                      >
+                        {{ dp.gmVolume.toFixed(2) }}
+                      </td>
+                      <td class="px-4 py-3 text-right text-green-400 font-mono">
+                        {{ dp.wmVolume.toFixed(2) }}
+                      </td>
+                      <td
+                        class="px-4 py-3 text-right text-yellow-400 font-mono"
+                      >
+                        {{ dp.csfVolume.toFixed(2) }}
+                      </td>
+                      <td
+                        class="px-4 py-3 text-right font-mono"
+                        [ngClass]="
+                          dp.tumorDetected ? 'text-red-400' : 'text-gray-500'
+                        "
+                      >
+                        {{ dp.tumorDetected ? dp.tumorVolume.toFixed(3) : "—" }}
+                      </td>
+                      <td class="px-4 py-3 text-right text-pink-400 font-mono">
+                        {{ dp.cortexThicknessAvg.toFixed(2) }}
+                      </td>
+                      <td class="px-4 py-3 text-right text-blue-400 font-mono">
+                        {{ dp.wmDensityScore.toFixed(1) }}
+                      </td>
+                      <td
+                        class="px-4 py-3 text-right font-mono"
+                        [ngClass]="
+                          dp.epilepsyRiskScore >= 70
+                            ? 'text-red-400'
+                            : dp.epilepsyRiskScore >= 40
+                              ? 'text-yellow-400'
+                              : 'text-green-400'
+                        "
+                      >
+                        {{ dp.epilepsyRiskScore.toFixed(1) }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      }
+    }
+  }
+</div>

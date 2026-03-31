@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { MriScanResponse, MriScanDetail, AnalysisResult } from '../models/api.models';
+import { MriScanResponse, MriScanDetail, AnalysisResult, PatientEvolution, MeshDataResponse } from '../models/api.models';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
 
@@ -41,6 +41,35 @@ export class MriService {
 
     return this.http.post<MriScanResponse>(
       `${this.apiUrl}/mriscan/upload-self`,
+      formData,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  uploadTumorScan(patientId: string, t1: File, t1ce: File, t2: File, flair: File): Observable<MriScanResponse> {
+    const formData = new FormData();
+    formData.append('PatientId', patientId);
+    formData.append('T1File', t1);
+    formData.append('T1ceFile', t1ce);
+    formData.append('T2File', t2);
+    formData.append('FlairFile', flair);
+
+    return this.http.post<MriScanResponse>(
+      `${this.apiUrl}/mriscan/upload-tumor`,
+      formData,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  uploadSelfTumorScan(t1: File, t1ce: File, t2: File, flair: File): Observable<MriScanResponse> {
+    const formData = new FormData();
+    formData.append('t1', t1);
+    formData.append('t1ce', t1ce);
+    formData.append('t2', t2);
+    formData.append('flair', flair);
+
+    return this.http.post<MriScanResponse>(
+      `${this.apiUrl}/mriscan/upload-self-tumor`,
       formData,
       { headers: this.getHeaders() }
     );
@@ -98,6 +127,13 @@ export class MriService {
     );
   }
 
+  getTumorOverlaySlice(scanId: string, sliceIndex: number): Observable<Blob> {
+    return this.http.get(
+      `${this.apiUrl}/mriscan/${scanId}/tumor-overlay/${sliceIndex}`,
+      { headers: this.getHeaders(), responseType: 'blob' }
+    );
+  }
+
   getMyScans(): Observable<MriScanDetail[]> {
     return this.http.get<MriScanDetail[]>(
       `${this.apiUrl}/mriscan/my-scans`,
@@ -146,6 +182,20 @@ export class MriService {
     return this.http.get(
       `${this.apiUrl}/mriscan/${scanId}/corrected-slice/${sliceIndex}`,
       { headers: this.getHeaders(), responseType: 'blob' }
+    );
+  }
+
+  getPatientEvolution(patientId: string): Observable<PatientEvolution> {
+    return this.http.get<PatientEvolution>(
+      `${this.apiUrl}/mriscan/patient/${patientId}/evolution`,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  get3DMesh(scanId: string): Observable<MeshDataResponse> {
+    return this.http.get<MeshDataResponse>(
+      `${this.apiUrl}/mriscan/${scanId}/3d-mesh`,
+      { headers: this.getHeaders() }
     );
   }
 }

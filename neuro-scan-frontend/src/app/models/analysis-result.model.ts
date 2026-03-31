@@ -9,9 +9,23 @@ export interface AnalysisResult {
   // Epilepsy risk
   epilepsyRiskScore: number;
   epilepsyRiskLevel: string; // 'Low' | 'Moderate' | 'High'
+  // Tumor detection
+  tumorDetected: boolean;
+  tumorVolume: number;
+  tumorSurfaceArea: number;
+  // Cortex thickness
+  cortexThicknessAvg: number;
+  cortexThicknessMin: number;
+  cortexThicknessMax: number;
+  // White matter density
+  wmDensityScore: number;
+  wmMeanIntensity: number;
+  wmCoefficientOfVariation: number;
   // Segmentation image
   segmentationImagePath?: string;
   segmentationSliceCount?: number;
+  // Tumor overlay
+  tumorOverlaySliceCount?: number;
   // Report
   medicalReportText: string | null;
   analyzedAt: Date;

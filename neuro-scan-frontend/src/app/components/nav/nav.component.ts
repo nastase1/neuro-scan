@@ -16,6 +16,7 @@ export class NavComponent implements OnInit {
   isMenuOpen = false;
   isProfileOpen = false;
   isInviteOpen = false;
+  isScrolled = signal(false);
 
   inviteCode = signal<string | null>(null);
   inviteCodeCopied = signal(false);
@@ -33,6 +34,11 @@ export class NavComponent implements OnInit {
       this.isInviteOpen = false;
       this.isMenuOpen = false;
     }
+  }
+
+  @HostListener('window:scroll')
+  onWindowScroll(): void {
+    this.isScrolled.set(window.scrollY > 20);
   }
 
   ngOnInit(): void {

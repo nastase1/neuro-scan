@@ -93,6 +93,7 @@ export interface MriScanDetail {
   patientId: string;
   patient: PatientBasic;
   originalFileName: string;
+  storedFilePath: string;
   uploadDate: string;
   status: ScanStatus;
   doctorClinicalNotes?: string;
@@ -117,13 +118,79 @@ export interface AnalysisResult {
   // Epilepsy risk
   epilepsyRiskScore: number;
   epilepsyRiskLevel: string; // 'Low' | 'Moderate' | 'High'
+  // Tumor detection
+  tumorDetected: boolean;
+  tumorVolume: number;
+  tumorSurfaceArea: number;
+  // Cortex thickness
+  cortexThicknessAvg: number;
+  cortexThicknessMin: number;
+  cortexThicknessMax: number;
+  // White matter density
+  wmDensityScore: number;
+  wmMeanIntensity: number;
+  wmCoefficientOfVariation: number;
   // Segmentation image
   segmentationImagePath?: string;
   segmentationSliceCount?: number;
+  // Tumor overlay
+  tumorOverlaySliceCount?: number;
   medicalReportText?: string;
   analyzedAt: string;
   doctorApproved?: boolean;
   doctorReviewNotes?: string;
+}
+
+// Patient evolution interfaces
+export interface PatientEvolution {
+  patientId: string;
+  patientName: string;
+  dataPoints: EvolutionDataPoint[];
+  summary: EvolutionSummary;
+  llmInterpretation?: string;
+}
+
+export interface EvolutionDataPoint {
+  scanId: string;
+  scanDate: string;
+  csfVolume: number;
+  gmVolume: number;
+  wmVolume: number;
+  totalBrainVolume: number;
+  asymmetryIndex: number;
+  epilepsyRiskScore: number;
+  tumorDetected: boolean;
+  tumorVolume: number;
+  tumorSurfaceArea: number;
+  cortexThicknessAvg: number;
+  wmDensityScore: number;
+}
+
+export interface EvolutionSummary {
+  totalScans: number;
+  monthsSpan: number;
+  brainVolumeDelta: number;
+  gmVolumeDelta: number;
+  wmVolumeDelta: number;
+  csfVolumeDelta: number;
+  tumorVolumeDelta: number;
+  cortexThicknessDelta: number;
+  wmDensityDelta: number;
+  brainVolumeChangeRate: number;
+  degradationLevel: string;
+}
+
+// 3D mesh interfaces
+export interface MeshDataResponse {
+  success: boolean;
+  regions: { [key: string]: MeshRegion };
+}
+
+export interface MeshRegion {
+  vertices: number[][];
+  faces: number[][];
+  color: string;
+  opacity: number;
 }
 
 export enum ScanStatus {

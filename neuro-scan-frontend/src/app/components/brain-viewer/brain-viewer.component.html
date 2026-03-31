@@ -1,0 +1,104 @@
+<div
+  class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6"
+>
+  <!-- Header -->
+  <div class="max-w-7xl mx-auto mb-6">
+    <button
+      (click)="goBack()"
+      class="text-cyan-400 hover:text-cyan-300 mb-4 flex items-center gap-2 transition-colors"
+    >
+      <svg
+        class="w-5 h-5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M15 19l-7-7 7-7"
+        />
+      </svg>
+      Back
+    </button>
+    <h1 class="text-3xl font-bold text-white">
+      <span class="text-cyan-400">3D Brain Viewer</span>
+    </h1>
+    <p class="text-gray-400 mt-1">
+      Interactive 3D visualization of brain segmentation
+    </p>
+  </div>
+
+  <!-- Loading -->
+  @if (isLoading()) {
+    <div class="flex flex-col justify-center items-center h-64 gap-4">
+      <div
+        class="animate-spin rounded-full h-12 w-12 border-4 border-cyan-500 border-t-transparent"
+      ></div>
+      <p class="text-gray-400">Generating 3D mesh data from MRI scan...</p>
+      <p class="text-gray-500 text-sm">
+        This may take a minute for large scans.
+      </p>
+    </div>
+  }
+
+  <!-- Error -->
+  @if (error()) {
+    <div
+      class="max-w-7xl mx-auto bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400"
+    >
+      {{ error() }}
+    </div>
+  }
+
+  @if (!isLoading() && !error() && meshData()) {
+    <div class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
+      <!-- Controls Panel -->
+      <div class="lg:w-64 flex-shrink-0">
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
+          <h3
+            class="text-sm font-semibold text-gray-300 mb-3 uppercase tracking-wider"
+          >
+            Regions
+          </h3>
+          @for (key of getRegionKeys(); track key) {
+            <label
+              class="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-slate-700/30 cursor-pointer transition-colors"
+            >
+              <input
+                type="checkbox"
+                [checked]="visibleRegions()[key]"
+                (change)="toggleRegion(key)"
+                class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-cyan-500 focus:ring-cyan-500/50"
+              />
+              <span
+                class="w-3 h-3 rounded-full flex-shrink-0"
+                [style.background-color]="regionColors[key] || '#666'"
+              >
+              </span>
+              <span class="text-sm text-gray-300">{{
+                regionLabels[key] || key
+              }}</span>
+            </label>
+          }
+
+          <div class="mt-4 pt-4 border-t border-slate-700/50">
+            <p class="text-xs text-gray-500">
+              Use mouse to rotate, scroll to zoom, right-click to pan.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3D Plot -->
+      <div class="flex-1">
+        <div
+          class="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden"
+        >
+          <div #plotlyContainer class="w-full" style="height: 600px"></div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

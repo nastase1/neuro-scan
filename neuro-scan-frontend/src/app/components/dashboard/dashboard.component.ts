@@ -33,6 +33,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   isUploading = signal(false);
   uploadProgress = signal(0);
   uploadError = signal('');
+  scanMode = signal<'anatomy' | 'tumor'>('anatomy');
+  lastScanMode = signal<'anatomy' | 'tumor'>('anatomy');
+
+  // Tumor multi-file signals
+  selectedT1File = signal<File | null>(null);
+  selectedT1ceFile = signal<File | null>(null);
+  selectedT2File = signal<File | null>(null);
+  selectedFlairFile = signal<File | null>(null);
   
   // Analysis states - using signals for zoneless change detection
   isAnalyzing = signal(false);
@@ -105,12 +113,34 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // Epilepsy risk
   epilepsyRiskScore = signal(0);
   epilepsyRiskLevel = signal('Low');
-  
+
+  // Tumor detection
+  tumorDetected = signal(false);
+  tumorVolume = signal(0);
+  tumorSurfaceArea = signal(0);
+
+  // Cortex thickness
+  cortexThicknessAvg = signal(0);
+  cortexThicknessMin = signal(0);
+  cortexThicknessMax = signal(0);
+
+  // White matter density
+  wmDensityScore = signal(0);
+  wmMeanIntensity = signal(0);
+  wmCoefficientOfVariation = signal(0);
+
   // Segmentation image URL and slice navigation
   segmentationImageUrl = signal<string | null>(null);
   segmentationSliceCount = signal(0);
   currentSliceIndex = signal(0);
   isLoadingSlice = signal(false);
+
+  // Tumor overlay slice navigation
+  tumorOverlayImageUrl = signal<string | null>(null);
+  tumorOverlaySliceCount = signal(0);
+  tumorOverlayIndex = signal(0);
+  isLoadingTumorSlice = signal(false);
+  private tumorOverlayObjectUrl: string | null = null;
   
   medicalReport = signal('');
   
@@ -341,6 +371,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
         console.log('Scan loaded:', result);
         
         if (result.analysisResult) {
+          // Infer scan mode from results: if tumor was detected or tumor slices exist, it was a tumor scan
+          if (result.analysisResult.tumorDetected || (result.analysisResult.tumorOverlaySliceCount ?? 0) > 0) {
+            this.lastScanMode.set('tumor');
+          } else {
+            this.lastScanMode.set('anatomy');
+          }
           // Display the analysis results
           this.analysisResult.set(result.analysisResult);
           this.displayResults(result.analysisResult);
@@ -431,6 +467,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // For doctors, patientId is required. For standard users, it's not.
     if (this.isDoctor() && !this.selectedPatientId()) return;
     
+    this.lastScanMode.set('anatomy');
     this.isUploading.set(true);
     this.uploadProgress.set(0);
     this.uploadError.set('');
@@ -454,6 +491,66 @@ export class DashboardComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Upload failed:', error);
+        this.isUploading.set(false);
+        const errorMsg = error.error?.message || error.message || 'Upload failed. Please try again.';
+        this.uploadError.set(errorMsg);
+        alert(errorMsg);
+      }
+    });
+  }
+
+  onTumorFileSelected(event: Event, modality: 't1' | 't1ce' | 't2' | 'flair'): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      if (!file.name.toLowerCase().endsWith('.nii') && !file.name.toLowerCase().endsWith('.nii.gz')) {
+        alert('Only .nii or .nii.gz files are allowed');
+        return;
+      }
+      switch (modality) {
+        case 't1': this.selectedT1File.set(file); break;
+        case 't1ce': this.selectedT1ceFile.set(file); break;
+        case 't2': this.selectedT2File.set(file); break;
+        case 'flair': this.selectedFlairFile.set(file); break;
+      }
+    }
+  }
+
+  allTumorFilesSelected(): boolean {
+    return !!(this.selectedT1File() && this.selectedT1ceFile() && this.selectedT2File() && this.selectedFlairFile());
+  }
+
+  startTumorUpload(): void {
+    if (!this.allTumorFilesSelected()) return;
+    if (this.isDoctor() && !this.selectedPatientId()) {
+      alert('Please select a patient first');
+      return;
+    }
+
+    this.lastScanMode.set('tumor');
+    this.isUploading.set(true);
+    this.uploadProgress.set(0);
+    this.uploadError.set('');
+
+    const t1 = this.selectedT1File()!;
+    const t1ce = this.selectedT1ceFile()!;
+    const t2 = this.selectedT2File()!;
+    const flair = this.selectedFlairFile()!;
+
+    const uploadObservable = this.isStandardUser()
+      ? this.mriService.uploadSelfTumorScan(t1, t1ce, t2, flair)
+      : this.mriService.uploadTumorScan(this.selectedPatientId()!, t1, t1ce, t2, flair);
+
+    uploadObservable.subscribe({
+      next: (response) => {
+        console.log('Tumor upload successful:', response);
+        this.scanId = response.scanId;
+        this.isUploading.set(false);
+        this.uploadProgress.set(100);
+        this.startAnalysis();
+      },
+      error: (error) => {
+        console.error('Tumor upload failed:', error);
         this.isUploading.set(false);
         const errorMsg = error.error?.message || error.message || 'Upload failed. Please try again.';
         this.uploadError.set(errorMsg);
@@ -527,6 +624,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.asymmetryIndex.set(result.asymmetryIndex);
     this.epilepsyRiskScore.set(result.epilepsyRiskScore);
     this.epilepsyRiskLevel.set(result.epilepsyRiskLevel ?? 'Low');
+
+    // Tumor
+    this.tumorDetected.set(result.tumorDetected ?? false);
+    this.tumorVolume.set(result.tumorVolume ?? 0);
+    this.tumorSurfaceArea.set(result.tumorSurfaceArea ?? 0);
+
+    // Cortex thickness
+    this.cortexThicknessAvg.set(result.cortexThicknessAvg ?? 0);
+    this.cortexThicknessMin.set(result.cortexThicknessMin ?? 0);
+    this.cortexThicknessMax.set(result.cortexThicknessMax ?? 0);
+
+    // White matter density
+    this.wmDensityScore.set(result.wmDensityScore ?? 0);
+    this.wmMeanIntensity.set(result.wmMeanIntensity ?? 0);
+    this.wmCoefficientOfVariation.set(result.wmCoefficientOfVariation ?? 0);
     
     // Load segmentation slices
     const sliceCount = result.segmentationSliceCount ?? 0;
@@ -536,6 +648,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
       const midSlice = Math.floor(sliceCount / 2);
       this.currentSliceIndex.set(midSlice);
       this.loadSlice(midSlice);
+    }
+
+    // Load tumor overlay slices
+    const tumorCount = result.tumorOverlaySliceCount ?? 0;
+    this.tumorOverlaySliceCount.set(tumorCount);
+    if (this.scanId && tumorCount > 0) {
+      const midTumor = Math.floor(tumorCount / 2);
+      this.tumorOverlayIndex.set(midTumor);
+      this.loadTumorSlice(midTumor);
     }
     
     this.medicalReport.set(result.medicalReportText || 'Medical report not available.');
@@ -658,6 +779,31 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.loadSlice(index);
   }
 
+  loadTumorSlice(index: number): void {
+    if (!this.scanId) return;
+    this.isLoadingTumorSlice.set(true);
+    this.mriService.getTumorOverlaySlice(this.scanId, index).subscribe({
+      next: (blob) => {
+        if (this.tumorOverlayObjectUrl) {
+          URL.revokeObjectURL(this.tumorOverlayObjectUrl);
+        }
+        this.tumorOverlayObjectUrl = URL.createObjectURL(blob);
+        this.tumorOverlayImageUrl.set(this.tumorOverlayObjectUrl);
+        this.isLoadingTumorSlice.set(false);
+      },
+      error: () => {
+        this.tumorOverlayImageUrl.set(null);
+        this.isLoadingTumorSlice.set(false);
+      }
+    });
+  }
+
+  onTumorSliderChange(event: Event): void {
+    const index = parseInt((event.target as HTMLInputElement).value, 10);
+    this.tumorOverlayIndex.set(index);
+    this.loadTumorSlice(index);
+  }
+
   canGoBackToHistory(): boolean {
     return !!this.scanId && !!this.scanSource;
   }
@@ -685,6 +831,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   resetAnalysis(): void {
     this.selectedFile = null;
+    this.selectedT1File.set(null);
+    this.selectedT1ceFile.set(null);
+    this.selectedT2File.set(null);
+    this.selectedFlairFile.set(null);
     this.isUploading.set(false);
     this.uploadProgress.set(0);
     this.uploadError.set('');
@@ -699,6 +849,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.segmentationObjectUrl = null;
     }
     this.segmentationImageUrl.set(null);
+    this.tumorOverlaySliceCount.set(0);
+    this.tumorOverlayIndex.set(0);
+    if (this.tumorOverlayObjectUrl) {
+      URL.revokeObjectURL(this.tumorOverlayObjectUrl);
+      this.tumorOverlayObjectUrl = null;
+    }
+    this.tumorOverlayImageUrl.set(null);
     
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);

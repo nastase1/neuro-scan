@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NeuroScan.Infrastructure.Context;
 
@@ -10,9 +11,11 @@ using NeuroScan.Infrastructure.Context;
 namespace NeuroScan.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260331075659_AddTumorCortexWmDensityFields")]
+    partial class AddTumorCortexWmDensityFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.24");
@@ -78,12 +81,6 @@ namespace NeuroScan.Infrastructure.Migrations
                     b.Property<bool>("TumorDetected")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("TumorOverlayImagePath")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("TumorOverlaySliceCount")
-                        .HasColumnType("INTEGER");
-
                     b.Property<double>("TumorSurfaceArea")
                         .HasColumnType("REAL");
 
@@ -144,24 +141,12 @@ namespace NeuroScan.Infrastructure.Migrations
                     b.Property<Guid?>("ReviewedByDoctorId")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("ScanType")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("StoredFilePath")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("StoredFilePathFlair")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("StoredFilePathT1ce")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("StoredFilePathT2")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("UpdatedAt")

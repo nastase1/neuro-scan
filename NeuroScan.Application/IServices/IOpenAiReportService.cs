@@ -3,6 +3,7 @@ namespace NeuroScan.Application.IServices;
 public interface IOpenAiReportService
 {
     Task<string> GenerateMedicalReportAsync(SegResNetAnalysisResponseDTO analysisData, PatientContextDTO patientContext);
+    Task<string> GenerateEvolutionReportAsync(string userPrompt, string systemPrompt);
 }
 
 public class PatientContextDTO
