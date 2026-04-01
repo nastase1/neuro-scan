@@ -10,6 +10,7 @@ public interface IAuthService
     Task<GenericResponseDTO> ForgotPasswordAsync(ForgotPasswordRequestDTO request);
     Task<GenericResponseDTO> ResetPasswordAsync(ResetPasswordRequestDTO request);
     Task<string?> GetMyInviteCodeAsync(Guid doctorId);
+    Task<UpdateProfileResponseDTO> UpdateProfileAsync(Guid userId, UpdateProfileRequestDTO request);
 }
 
 public class AuthResponseDTO
@@ -65,4 +66,20 @@ public class GenericResponseDTO
 {
     public bool Success { get; set; }
     public string? Message { get; set; }
+}
+
+public class UpdateProfileRequestDTO
+{
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Email { get; set; }
+    public string? CurrentPassword { get; set; }
+    public string? NewPassword { get; set; }
+}
+
+public class UpdateProfileResponseDTO
+{
+    public bool Success { get; set; }
+    public string? Message { get; set; }
+    public UserDTO? User { get; set; }
 }

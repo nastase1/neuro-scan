@@ -152,6 +152,66 @@ public class AuthService : IAuthService
         return doctor.InviteCode;
     }
 
+    public async Task<UpdateProfileResponseDTO> UpdateProfileAsync(Guid userId, UpdateProfileRequestDTO request)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null)
+            return new UpdateProfileResponseDTO { Success = false, Message = "User not found" };
+
+        // Update name fields if provided
+        if (!string.IsNullOrWhiteSpace(request.FirstName))
+            user.FirstName = request.FirstName.Trim();
+        if (!string.IsNullOrWhiteSpace(request.LastName))
+            user.LastName = request.LastName.Trim();
+
+        // Update email if provided and different
+        if (!string.IsNullOrWhiteSpace(request.Email) && request.Email.Trim() != user.Email)
+        {
+            var existing = await _userRepository.GetByEmailAsync(request.Email.Trim());
+            if (existing != null)
+                return new UpdateProfileResponseDTO { Success = false, Message = "Email already in use" };
+            user.Email = request.Email.Trim();
+        }
+
+        // Update password if provided
+        if (!string.IsNullOrWhiteSpace(request.NewPassword))
+        {
+            if (string.IsNullOrWhiteSpace(request.CurrentPassword))
+                return new UpdateProfileResponseDTO { Success = false, Message = "Current password is required to set a new password" };
+            if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+                return new UpdateProfileResponseDTO { Success = false, Message = "Current password is incorrect" };
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        }
+
+        user.UpdatedAt = DateTime.UtcNow;
+        await _userRepository.UpdateAsync(user);
+
+        // Get doctor name for response
+        string? doctorName = null;
+        if (user.AssignedDoctorId.HasValue)
+        {
+            var doctor = await _userRepository.GetByIdAsync(user.AssignedDoctorId.Value);
+            doctorName = doctor != null ? $"{doctor.FirstName} {doctor.LastName}" : null;
+        }
+
+        return new UpdateProfileResponseDTO
+        {
+            Success = true,
+            Message = "Profile updated successfully",
+            User = new UserDTO
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                Role = user.Role,
+                InviteCode = user.InviteCode,
+                AssignedDoctorId = user.AssignedDoctorId,
+                AssignedDoctorName = doctorName
+            }
+        };
+    }
+
     public async Task<GenericResponseDTO> ForgotPasswordAsync(ForgotPasswordRequestDTO request)
     {
         var user = await _userRepository.GetByEmailAsync(request.Email);

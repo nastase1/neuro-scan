@@ -94,4 +94,22 @@ public class AuthController : ControllerBase
 
         return Ok(new { inviteCode = code });
     }
+
+    /// <summary>
+    /// Update the authenticated user's profile
+    /// </summary>
+    [HttpPut("profile")]
+    [Authorize]
+    public async Task<ActionResult<UpdateProfileResponseDTO>> UpdateProfile([FromBody] UpdateProfileRequestDTO request)
+    {
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdStr, out var userId))
+            return Unauthorized();
+
+        var result = await _authService.UpdateProfileAsync(userId, request);
+        if (!result.Success)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
 }

@@ -13,6 +13,7 @@ import { DoctorReviewComponent } from './components/doctor-review/doctor-review.
 import { AdminComponent } from './components/admin/admin.component';
 import { HomeComponent } from './components/home/home.component';
 import { LegalPageComponent } from './components/legal-page/legal-page.component';
+import { ProfileSettingsComponent } from './components/profile-settings/profile-settings.component';
 import { authGuard } from './guards/auth.guard';
 import { doctorGuard, adminGuard } from './guards/role.guard';
 
@@ -105,5 +106,6 @@ export const routes: Routes = [
     canActivate: [authGuard],
     data: { pageType: 'support' }
   },
+  { path: 'profile', component: ProfileSettingsComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: '/login' }
 ];

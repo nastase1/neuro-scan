@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap } from 'rxjs';
-import { User, LoginRequest, RegisterRequest, AuthResponse, ForgotPasswordRequest, ResetPasswordRequest, GenericResponse } from '../models/api.models';
+import { User, LoginRequest, RegisterRequest, AuthResponse, ForgotPasswordRequest, ResetPasswordRequest, GenericResponse, UpdateProfileRequest, UpdateProfileResponse } from '../models/api.models';
 import { environment } from '../../environments/environment';
 
 @Injectable({
@@ -57,6 +57,18 @@ export class AuthService {
 
   getMyInviteCode(): Observable<{ inviteCode: string }> {
     return this.http.get<{ inviteCode: string }>(`${this.apiUrl}/auth/my-invite-code`);
+  }
+
+  updateProfile(request: UpdateProfileRequest): Observable<UpdateProfileResponse> {
+    return this.http.put<UpdateProfileResponse>(`${this.apiUrl}/auth/profile`, request)
+      .pipe(
+        tap(response => {
+          if (response.success && response.user) {
+            localStorage.setItem('user', JSON.stringify(response.user));
+            this.currentUserSubject.next(response.user);
+          }
+        })
+      );
   }
 
   getToken(): string | null {

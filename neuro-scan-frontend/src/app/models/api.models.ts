@@ -35,6 +35,20 @@ export interface GenericResponse {
   message?: string;
 }
 
+export interface UpdateProfileRequest {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}
+
+export interface UpdateProfileResponse {
+  success: boolean;
+  message?: string;
+  user?: User;
+}
+
 export interface User {
   id: string;
   firstName: string;
