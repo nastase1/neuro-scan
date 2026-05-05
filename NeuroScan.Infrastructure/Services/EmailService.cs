@@ -223,11 +223,26 @@ public class EmailService : IEmailService
     multipart.Add(attachment);
     message.Body = multipart;
 
+    // Validate SMTP settings are configured
+    if (string.IsNullOrWhiteSpace(_settings.SmtpHost) ||
+        string.IsNullOrWhiteSpace(_settings.SmtpUser) ||
+        string.IsNullOrWhiteSpace(_settings.SmtpPassword))
+    {
+      throw new InvalidOperationException("SMTP settings are not properly configured. Check Email configuration in appsettings or environment variables.");
+    }
+
     using var client = new SmtpClient();
-    await client.ConnectAsync(_settings.SmtpHost, _settings.SmtpPort, SecureSocketOptions.StartTls);
-    await client.AuthenticateAsync(_settings.SmtpUser, _settings.SmtpPassword);
-    await client.SendAsync(message);
-    await client.DisconnectAsync(true);
+    try
+    {
+      await client.ConnectAsync(_settings.SmtpHost, _settings.SmtpPort, SecureSocketOptions.StartTls);
+      await client.AuthenticateAsync(_settings.SmtpUser, _settings.SmtpPassword);
+      await client.SendAsync(message);
+      await client.DisconnectAsync(true);
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Failed to send scan results email to {toEmail}. SMTP Host: {_settings.SmtpHost}, Port: {_settings.SmtpPort}, User: {_settings.SmtpUser}", ex);
+    }
   }
 
   private static byte[] GenerateReportPdf(string patientName, ScanResultEmailData data)
@@ -318,6 +333,14 @@ public class EmailService : IEmailService
 
   private async Task SendEmailAsync(string toEmail, string subject, string htmlBody)
   {
+    // Validate SMTP settings are configured
+    if (string.IsNullOrWhiteSpace(_settings.SmtpHost) ||
+        string.IsNullOrWhiteSpace(_settings.SmtpUser) ||
+        string.IsNullOrWhiteSpace(_settings.SmtpPassword))
+    {
+      throw new InvalidOperationException("SMTP settings are not properly configured. Check Email configuration in appsettings or environment variables.");
+    }
+
     var message = new MimeMessage();
     message.From.Add(new MailboxAddress(_settings.FromName, _settings.FromEmail));
     message.To.Add(new MailboxAddress(string.Empty, toEmail));
@@ -325,9 +348,16 @@ public class EmailService : IEmailService
     message.Body = new TextPart("html") { Text = htmlBody };
 
     using var client = new SmtpClient();
-    await client.ConnectAsync(_settings.SmtpHost, _settings.SmtpPort, SecureSocketOptions.StartTls);
-    await client.AuthenticateAsync(_settings.SmtpUser, _settings.SmtpPassword);
-    await client.SendAsync(message);
-    await client.DisconnectAsync(true);
+    try
+    {
+      await client.ConnectAsync(_settings.SmtpHost, _settings.SmtpPort, SecureSocketOptions.StartTls);
+      await client.AuthenticateAsync(_settings.SmtpUser, _settings.SmtpPassword);
+      await client.SendAsync(message);
+      await client.DisconnectAsync(true);
+    }
+    catch (Exception ex)
+    {
+      throw new InvalidOperationException($"Failed to send email to {toEmail}. SMTP Host: {_settings.SmtpHost}, Port: {_settings.SmtpPort}, User: {_settings.SmtpUser}", ex);
+    }
   }
 }

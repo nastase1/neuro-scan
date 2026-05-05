@@ -177,7 +177,7 @@ export class PatientEvolutionComponent implements OnInit, AfterViewInit, OnDestr
     const points = this.dataPoints();
     if (points.length < 2) return;
 
-    const labels = points.map(p => new Date(p.scanDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }));
+    const labels = points.map(p => new Date(p.scanDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
 
     const tab = this.activeTab();
     if (tab === 'volumes' && this.volumeChartRef) {

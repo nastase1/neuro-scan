@@ -43,6 +43,7 @@ export class BrainViewerComponent implements OnInit, AfterViewInit, OnDestroy {
   };
 
   private plotlyLoaded = false;
+  private resizeHandler: (() => void) | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -53,11 +54,26 @@ export class BrainViewerComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit() {
     this.scanId = this.route.snapshot.paramMap.get('scanId') ?? '';
     this.loadPlotlyScript();
+    
+    // Add window resize listener for responsive plot
+    this.resizeHandler = () => {
+      if (this.plotlyContainer?.nativeElement && this.plotlyLoaded) {
+        try {
+          Plotly.Plots.resize(this.plotlyContainer.nativeElement);
+        } catch (e) {
+          console.error('Error resizing plot:', e);
+        }
+      }
+    };
+    window.addEventListener('resize', this.resizeHandler);
   }
 
   ngAfterViewInit() {}
 
   ngOnDestroy() {
+    if (this.resizeHandler) {
+      window.removeEventListener('resize', this.resizeHandler);
+    }
     if (this.plotlyContainer?.nativeElement && this.plotlyLoaded) {
       try { Plotly.purge(this.plotlyContainer.nativeElement); } catch {}
     }
@@ -188,6 +204,7 @@ export class BrainViewerComponent implements OnInit, AfterViewInit, OnDestroy {
     };
 
     const layout = {
+      autosize: true,
       paper_bgcolor: 'rgba(10, 15, 25, 1)',
       plot_bgcolor: 'rgba(10, 15, 25, 1)',
       scene: {
@@ -207,7 +224,10 @@ export class BrainViewerComponent implements OnInit, AfterViewInit, OnDestroy {
         font: { color: 'white', size: 12 },
         bgcolor: 'rgba(30,41,59,0.8)',
         bordercolor: 'rgba(71,85,105,0.5)',
-        borderwidth: 1
+        borderwidth: 1,
+        orientation: 'v',
+        x: 0,
+        y: 1
       }
     };
 
@@ -215,7 +235,11 @@ export class BrainViewerComponent implements OnInit, AfterViewInit, OnDestroy {
       responsive: true,
       displayModeBar: true,
       modeBarButtonsToRemove: ['toImage', 'sendDataToCloud'],
-      displaylogo: false
+      displaylogo: false,
+      toImageButtonOptions: {
+        format: 'png',
+        filename: 'brain_3d_view'
+      }
     };
 
     Plotly.newPlot(this.plotlyContainer.nativeElement, traces, layout, config);
