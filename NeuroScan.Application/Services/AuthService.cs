@@ -1,7 +1,10 @@
+using Microsoft.Extensions.Logging;
+using NeuroScan.Application.Constants;
 using NeuroScan.Application.IServices;
 using NeuroScan.Domain.Entities;
 using NeuroScan.Domain.IRepositories;
 using BCrypt.Net;
+
 namespace NeuroScan.Application.Services;
 
 public class AuthService : IAuthService
@@ -10,18 +13,24 @@ public class AuthService : IAuthService
     private readonly IPatientRepository _patientRepository;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IEmailService _emailService;
+    private readonly ILogger<AuthService> _logger;
 
-    public AuthService(IUserRepository userRepository, IPatientRepository patientRepository, IJwtTokenService jwtTokenService, IEmailService emailService)
+    public AuthService(
+        IUserRepository userRepository,
+        IPatientRepository patientRepository,
+        IJwtTokenService jwtTokenService,
+        IEmailService emailService,
+        ILogger<AuthService> logger)
     {
         _userRepository = userRepository;
         _patientRepository = patientRepository;
         _jwtTokenService = jwtTokenService;
         _emailService = emailService;
+        _logger = logger;
     }
 
     public async Task<AuthResponseDTO> RegisterAsync(RegisterRequestDTO request)
     {
-        // Check if user exists
         var existingUser = await _userRepository.GetByEmailAsync(request.Email);
         if (existingUser != null)
         {
@@ -32,7 +41,6 @@ public class AuthService : IAuthService
             };
         }
 
-        // Create new user
         var user = new User
         {
             Id = Guid.NewGuid(),
@@ -44,13 +52,11 @@ public class AuthService : IAuthService
             CreatedAt = DateTime.UtcNow
         };
 
-        // Doctors get a unique invite code on registration
         if (request.Role == UserRole.Doctor)
         {
             user.InviteCode = GenerateInviteCode();
         }
 
-        // Standard users can optionally link to a doctor via invite code
         Guid? assignedDoctorId = null;
         if (request.Role == UserRole.StandardUser && !string.IsNullOrWhiteSpace(request.InviteCode))
         {
@@ -65,10 +71,9 @@ public class AuthService : IAuthService
 
         await _userRepository.AddAsync(user);
 
-        // Auto-create a Patient record for this user under the assigned doctor
         if (assignedDoctorId.HasValue)
         {
-            var mrn = "USR-" + user.Id.ToString("N")[..8].ToUpper();
+            var mrn = ScanConstants.MrnUserPrefix + user.Id.ToString("N")[..8].ToUpper();
             var patient = new Patient
             {
                 Id = Guid.NewGuid(),
@@ -83,8 +88,14 @@ public class AuthService : IAuthService
             await _patientRepository.AddAsync(patient);
         }
 
-        // Send welcome email (fire-and-forget; don't fail registration if email fails)
-        try { await _emailService.SendWelcomeEmailAsync(user.Email, user.FirstName); } catch { }
+        try
+        {
+            await _emailService.SendWelcomeEmailAsync(user.Email, user.FirstName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send welcome email to {Email}", user.Email);
+        }
 
         var token = _jwtTokenService.GenerateToken(user);
         var dto = MapToUserDTO(user);
@@ -142,7 +153,6 @@ public class AuthService : IAuthService
         var doctor = await _userRepository.GetByIdAsync(doctorId);
         if (doctor == null || doctor.Role != UserRole.Doctor) return null;
 
-        // Generate one if missing (for existing doctors)
         if (string.IsNullOrEmpty(doctor.InviteCode))
         {
             doctor.InviteCode = GenerateInviteCode();
@@ -158,13 +168,11 @@ public class AuthService : IAuthService
         if (user == null)
             return new UpdateProfileResponseDTO { Success = false, Message = "User not found" };
 
-        // Update name fields if provided
         if (!string.IsNullOrWhiteSpace(request.FirstName))
             user.FirstName = request.FirstName.Trim();
         if (!string.IsNullOrWhiteSpace(request.LastName))
             user.LastName = request.LastName.Trim();
 
-        // Update email if provided and different
         if (!string.IsNullOrWhiteSpace(request.Email) && request.Email.Trim() != user.Email)
         {
             var existing = await _userRepository.GetByEmailAsync(request.Email.Trim());
@@ -173,7 +181,6 @@ public class AuthService : IAuthService
             user.Email = request.Email.Trim();
         }
 
-        // Update password if provided
         if (!string.IsNullOrWhiteSpace(request.NewPassword))
         {
             if (string.IsNullOrWhiteSpace(request.CurrentPassword))
@@ -186,7 +193,6 @@ public class AuthService : IAuthService
         user.UpdatedAt = DateTime.UtcNow;
         await _userRepository.UpdateAsync(user);
 
-        // Get doctor name for response
         string? doctorName = null;
         if (user.AssignedDoctorId.HasValue)
         {
@@ -217,7 +223,6 @@ public class AuthService : IAuthService
         var user = await _userRepository.GetByEmailAsync(request.Email);
         if (user == null)
         {
-            // Return success anyway to avoid email enumeration
             return new GenericResponseDTO { Success = true, Message = "If this email is registered, a reset code has been sent." };
         }
 
@@ -226,7 +231,14 @@ public class AuthService : IAuthService
         user.PasswordResetCodeExpiry = DateTime.UtcNow.AddMinutes(15);
         await _userRepository.UpdateAsync(user);
 
-        try { await _emailService.SendPasswordResetCodeAsync(user.Email, user.FirstName, code); } catch { }
+        try
+        {
+            await _emailService.SendPasswordResetCodeAsync(user.Email, user.FirstName, code);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send password reset email to {Email}", user.Email);
+        }
 
         return new GenericResponseDTO { Success = true, Message = "If this email is registered, a reset code has been sent." };
     }
@@ -273,9 +285,10 @@ public class AuthService : IAuthService
 
     private static string GenerateInviteCode()
     {
-        var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         var random = new Random();
-        var code = new string(Enumerable.Range(0, 8).Select(_ => chars[random.Next(chars.Length)]).ToArray());
-        return $"DR-{code}";
+        var code = new string(Enumerable.Range(0, ScanConstants.InviteCodeLength)
+            .Select(_ => ScanConstants.InviteCodeChars[random.Next(ScanConstants.InviteCodeChars.Length)])
+            .ToArray());
+        return $"{ScanConstants.DoctorCodePrefix}{code}";
     }
 }

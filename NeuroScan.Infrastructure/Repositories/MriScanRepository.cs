@@ -5,19 +5,13 @@ using NeuroScan.Infrastructure.Context;
 
 namespace NeuroScan.Infrastructure.Repositories;
 
-public class MriScanRepository : IMriScanRepository
+public class MriScanRepository : BaseRepository<MriScan>, IMriScanRepository
 {
-    private readonly ApplicationDbContext _context;
-
-    public MriScanRepository(ApplicationDbContext context)
-    {
-        _context = context;
-    }
+    public MriScanRepository(ApplicationDbContext context) : base(context) { }
 
     public async Task<MriScan?> GetByIdAsync(Guid id)
     {
-        return await _context.MriScans
-            .Where(s => s.DeletedAt == null)
+        return await ActiveEntities
             .Include(s => s.Patient)
             .Include(s => s.ReviewedByDoctor)
             .FirstOrDefaultAsync(s => s.Id == id);
@@ -25,8 +19,8 @@ public class MriScanRepository : IMriScanRepository
 
     public async Task<IEnumerable<MriScan>> GetByPatientIdAsync(Guid patientId)
     {
-        return await _context.MriScans
-            .Where(s => s.DeletedAt == null && s.PatientId == patientId)
+        return await ActiveEntities
+            .Where(s => s.PatientId == patientId)
             .Include(s => s.Patient)
             .Include(s => s.AnalysisResult)
             .OrderByDescending(s => s.UploadDate)
@@ -35,8 +29,8 @@ public class MriScanRepository : IMriScanRepository
 
     public async Task<IEnumerable<MriScan>> GetPendingReviewScansAsync()
     {
-        return await _context.MriScans
-            .Where(s => s.DeletedAt == null && s.Status == ScanStatus.Analyzed && s.ReviewedByDoctorId == null)
+        return await ActiveEntities
+            .Where(s => s.Status == ScanStatus.Analyzed && s.ReviewedByDoctorId == null)
             .Include(s => s.Patient)
             .Include(s => s.AnalysisResult)
             .OrderBy(s => s.UploadDate)
@@ -45,8 +39,8 @@ public class MriScanRepository : IMriScanRepository
 
     public async Task<IEnumerable<MriScan>> GetByStatusAsync(ScanStatus status)
     {
-        return await _context.MriScans
-            .Where(s => s.DeletedAt == null && s.Status == status)
+        return await ActiveEntities
+            .Where(s => s.Status == status)
             .Include(s => s.Patient)
             .Include(s => s.AnalysisResult)
             .OrderByDescending(s => s.UploadDate)

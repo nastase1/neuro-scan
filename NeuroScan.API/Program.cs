@@ -63,6 +63,8 @@ builder.Services.AddScoped<IAnalysisResultRepository, AnalysisResultRepository>(
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IPatientService, PatientService>();
+builder.Services.AddScoped<IMriImageService, MriImageService>();
+builder.Services.AddScoped<IScanProcessingService, ScanProcessingService>();
 builder.Services.AddScoped<IMriScanService, MriScanService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));

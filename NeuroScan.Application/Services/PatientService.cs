@@ -1,3 +1,4 @@
+using NeuroScan.Application.Helpers;
 using NeuroScan.Application.IServices;
 using NeuroScan.Domain.Entities;
 using NeuroScan.Domain.IRepositories;
@@ -16,12 +17,7 @@ public class PatientService : IPatientService
     public async Task<PatientDTO?> GetByIdAsync(Guid patientId, Guid userId)
     {
         var patient = await _patientRepository.GetByIdAsync(patientId);
-
-        if (patient == null || patient.CreatedByUserId != userId)
-        {
-            return null;
-        }
-
+        if (patient == null || patient.CreatedByUserId != userId) return null;
         return MapToDTO(patient);
     }
 
@@ -34,21 +30,15 @@ public class PatientService : IPatientService
     public async Task<PatientDTO?> GetMyPatientAsync(Guid userId)
     {
         var patient = await _patientRepository.GetByPatientUserIdAsync(userId);
-        if (patient == null)
-        {
-            return null;
-        }
+        if (patient == null) return null;
         return MapToDTO(patient);
     }
 
     public async Task<PatientDTO> CreatePatientAsync(CreatePatientDTO dto, Guid userId)
     {
-        // Check if MRN already exists
         var existingPatient = await _patientRepository.GetByMedicalRecordNumberAsync(dto.MedicalRecordNumber);
         if (existingPatient != null)
-        {
             throw new InvalidOperationException("A patient with this Medical Record Number already exists");
-        }
 
         var patient = new Patient
         {
@@ -69,11 +59,7 @@ public class PatientService : IPatientService
     public async Task<PatientDTO?> UpdatePatientAsync(Guid patientId, UpdatePatientDTO dto, Guid userId)
     {
         var patient = await _patientRepository.GetByIdAsync(patientId);
-
-        if (patient == null || patient.CreatedByUserId != userId)
-        {
-            return null;
-        }
+        if (patient == null || patient.CreatedByUserId != userId) return null;
 
         if (!string.IsNullOrWhiteSpace(dto.FirstName))
             patient.FirstName = dto.FirstName;
@@ -103,15 +89,7 @@ public class PatientService : IPatientService
             DateOfBirth = patient.DateOfBirth,
             MedicalRecordNumber = patient.MedicalRecordNumber,
             Email = patient.Email,
-            Age = CalculateAge(patient.DateOfBirth)
+            Age = DateHelper.CalculateAge(patient.DateOfBirth)
         };
-    }
-
-    private static int CalculateAge(DateTime dateOfBirth)
-    {
-        var today = DateTime.Today;
-        var age = today.Year - dateOfBirth.Year;
-        if (dateOfBirth.Date > today.AddYears(-age)) age--;
-        return age;
     }
 }

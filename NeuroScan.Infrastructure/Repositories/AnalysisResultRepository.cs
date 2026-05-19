@@ -5,20 +5,13 @@ using NeuroScan.Infrastructure.Context;
 
 namespace NeuroScan.Infrastructure.Repositories;
 
-public class AnalysisResultRepository : IAnalysisResultRepository
+public class AnalysisResultRepository : BaseRepository<AnalysisResult>, IAnalysisResultRepository
 {
-    private readonly ApplicationDbContext _context;
-
-    public AnalysisResultRepository(ApplicationDbContext context)
-    {
-        _context = context;
-    }
+    public AnalysisResultRepository(ApplicationDbContext context) : base(context) { }
 
     public async Task<AnalysisResult?> GetByMriScanIdAsync(Guid scanId)
     {
-        return await _context.AnalysisResults
-            .Where(a => a.DeletedAt == null)
-            .FirstOrDefaultAsync(a => a.MriScanId == scanId);
+        return await ActiveEntities.FirstOrDefaultAsync(a => a.MriScanId == scanId);
     }
 
     public async Task AddAsync(AnalysisResult result)

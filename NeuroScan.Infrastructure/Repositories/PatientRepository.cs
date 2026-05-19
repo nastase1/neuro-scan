@@ -5,50 +5,42 @@ using NeuroScan.Infrastructure.Context;
 
 namespace NeuroScan.Infrastructure.Repositories;
 
-public class PatientRepository : IPatientRepository
+public class PatientRepository : BaseRepository<Patient>, IPatientRepository
 {
-    private readonly ApplicationDbContext _context;
-
-    public PatientRepository(ApplicationDbContext context)
-    {
-        _context = context;
-    }
+    public PatientRepository(ApplicationDbContext context) : base(context) { }
 
     public async Task<Patient?> GetByIdAsync(Guid id)
     {
-        return await _context.Patients
-            .Where(p => p.DeletedAt == null)
+        return await ActiveEntities
             .Include(p => p.CreatedBy)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
     public async Task<IEnumerable<Patient>> GetAllAsync()
     {
-        return await _context.Patients
-            .Where(p => p.DeletedAt == null)
+        return await ActiveEntities
             .Include(p => p.CreatedBy)
             .ToListAsync();
     }
 
     public async Task<IEnumerable<Patient>> GetByUserIdAsync(Guid userId)
     {
-        return await _context.Patients
-            .Where(p => p.DeletedAt == null && p.CreatedByUserId == userId)
+        return await ActiveEntities
+            .Where(p => p.CreatedByUserId == userId)
             .Include(p => p.CreatedBy)
             .ToListAsync();
     }
 
     public async Task<Patient?> GetByMedicalRecordNumberAsync(string mrn)
     {
-        return await _context.Patients
-            .Where(p => p.DeletedAt == null)
+        return await ActiveEntities
             .FirstOrDefaultAsync(p => p.MedicalRecordNumber == mrn);
     }
 
     public async Task<Patient?> GetByPatientUserIdAsync(Guid userId)
     {
-        return await _context.Patients
-            .Where(p => p.DeletedAt == null && p.UserId == userId)
+        return await ActiveEntities
+            .Where(p => p.UserId == userId)
             .Include(p => p.CreatedBy)
             .FirstOrDefaultAsync();
     }

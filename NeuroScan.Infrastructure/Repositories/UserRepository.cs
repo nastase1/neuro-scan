@@ -5,54 +5,43 @@ using NeuroScan.Infrastructure.Context;
 
 namespace NeuroScan.Infrastructure.Repositories;
 
-public class UserRepository : IUserRepository
+public class UserRepository : BaseRepository<User>, IUserRepository
 {
-    private readonly ApplicationDbContext _context;
-
-    public UserRepository(ApplicationDbContext context)
-    {
-        _context = context;
-    }
+    public UserRepository(ApplicationDbContext context) : base(context) { }
 
     public async Task<User?> GetByIdAsync(Guid id)
     {
-        return await _context.Users
-            .Where(u => u.DeletedAt == null)
-            .FirstOrDefaultAsync(u => u.Id == id);
+        return await ActiveEntities.FirstOrDefaultAsync(u => u.Id == id);
     }
 
     public async Task<User?> GetByEmailAsync(string email)
     {
-        return await _context.Users
-            .Where(u => u.DeletedAt == null)
-            .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+        return await ActiveEntities.FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
     }
 
     public async Task<User?> GetByInviteCodeAsync(string inviteCode)
     {
-        return await _context.Users
-            .Where(u => u.DeletedAt == null && u.Role == UserRole.Doctor)
+        return await ActiveEntities
+            .Where(u => u.Role == UserRole.Doctor)
             .FirstOrDefaultAsync(u => u.InviteCode == inviteCode);
     }
 
     public async Task<IEnumerable<User>> GetAssignedUsersAsync(Guid doctorId)
     {
-        return await _context.Users
-            .Where(u => u.DeletedAt == null && u.AssignedDoctorId == doctorId)
+        return await ActiveEntities
+            .Where(u => u.AssignedDoctorId == doctorId)
             .ToListAsync();
     }
 
     public async Task<IEnumerable<User>> GetAllAsync()
     {
-        return await _context.Users
-            .Where(u => u.DeletedAt == null)
-            .ToListAsync();
+        return await ActiveEntities.ToListAsync();
     }
 
     public async Task<IEnumerable<User>> GetByRoleAsync(UserRole role)
     {
-        return await _context.Users
-            .Where(u => u.DeletedAt == null && u.Role == role)
+        return await ActiveEntities
+            .Where(u => u.Role == role)
             .ToListAsync();
     }
 
