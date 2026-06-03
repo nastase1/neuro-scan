@@ -4,17 +4,16 @@
   <!-- Animated Background Elements -->
   <div class="absolute inset-0 overflow-hidden pointer-events-none">
     <div
-      class="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"
+      class="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl"
     ></div>
     <div
-      class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl animate-pulse"
-      style="animation-delay: 1s"
+      class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl"
     ></div>
   </div>
 
   <!-- Login Card -->
   <div
-    class="relative glass-card glass-card-hover p-8 md:p-12 w-full max-w-md animate-slide-up"
+    class="relative glass-card p-8 md:p-12 w-full max-w-md"
   >
     <!-- Logo & Header -->
     <div class="text-center mb-8">
@@ -190,7 +189,7 @@
       <button
         type="submit"
         [disabled]="isLoading()"
-        class="w-full py-4 bg-gradient-to-r from-cyan-500 to-teal-500 text-white font-bold rounded-xl hover:shadow-2xl hover:shadow-cyan-500/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+        class="w-full py-4 bg-gradient-to-r from-cyan-500 to-teal-500 text-white font-bold rounded-xl hover:shadow-lg hover:shadow-cyan-500/30 hover:brightness-110 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <span *ngIf="!isLoading()" class="flex items-center justify-center">
           Sign In
