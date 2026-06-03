@@ -26,7 +26,7 @@ jobs:
 
       - name: Bump frontend patch version
         working-directory: neuro-scan-frontend
-        run: npm version major --no-git-tag-version
+        run: npm version patch --no-git-tag-version
 
       - name: Sync app version constants
         shell: bash
