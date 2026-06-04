@@ -1,3 +1,5 @@
+using Google.Apis.Auth;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NeuroScan.Application.Constants;
 using NeuroScan.Application.IServices;
@@ -14,19 +16,22 @@ public class AuthService : IAuthService
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IEmailService _emailService;
     private readonly ILogger<AuthService> _logger;
+    private readonly string _googleClientId;
 
     public AuthService(
         IUserRepository userRepository,
         IPatientRepository patientRepository,
         IJwtTokenService jwtTokenService,
         IEmailService emailService,
-        ILogger<AuthService> logger)
+        ILogger<AuthService> logger,
+        IConfiguration configuration)
     {
         _userRepository = userRepository;
         _patientRepository = patientRepository;
         _jwtTokenService = jwtTokenService;
         _emailService = emailService;
         _logger = logger;
+        _googleClientId = configuration["Google:ClientId"] ?? string.Empty;
     }
 
     public async Task<AuthResponseDTO> RegisterAsync(RegisterRequestDTO request)
@@ -114,10 +119,73 @@ public class AuthService : IAuthService
         };
     }
 
+    public async Task<AuthResponseDTO> GoogleLoginAsync(GoogleAuthRequestDTO request)
+    {
+        GoogleJsonWebSignature.Payload payload;
+        try
+        {
+            var settings = new GoogleJsonWebSignature.ValidationSettings
+            {
+                Audience = [_googleClientId]
+            };
+            payload = await GoogleJsonWebSignature.ValidateAsync(request.Credential, settings);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Invalid Google token");
+            return new AuthResponseDTO { Success = false, Message = "Invalid Google token." };
+        }
+
+        var email = payload.Email;
+        var googleId = payload.Subject;
+
+        var user = await _userRepository.GetByEmailAsync(email);
+
+        if (user != null)
+        {
+            // Link GoogleId daca nu era deja setat
+            if (user.GoogleId != googleId)
+            {
+                user.GoogleId = googleId;
+                user.UpdatedAt = DateTime.UtcNow;
+                await _userRepository.UpdateAsync(user);
+            }
+        }
+        else
+        {
+            // Cont nou — StandardUser fara parola
+            var nameParts = (payload.Name ?? email).Split(' ', 2);
+            user = new User
+            {
+                Id = Guid.NewGuid(),
+                FirstName = nameParts[0],
+                LastName = nameParts.Length > 1 ? nameParts[1] : string.Empty,
+                Email = email,
+                GoogleId = googleId,
+                Role = UserRole.StandardUser,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _userRepository.AddAsync(user);
+
+            try { await _emailService.SendWelcomeEmailAsync(user.Email, user.FirstName); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to send welcome email to {Email}", user.Email); }
+        }
+
+        var token = _jwtTokenService.GenerateToken(user);
+        var dto = MapToUserDTO(user);
+        if (user.AssignedDoctorId.HasValue)
+        {
+            var doctor = await _userRepository.GetByIdAsync(user.AssignedDoctorId.Value);
+            if (doctor != null) dto.AssignedDoctorName = $"{doctor.FirstName} {doctor.LastName}";
+        }
+
+        return new AuthResponseDTO { Success = true, Token = token, Message = "Login successful", User = dto };
+    }
+
     public async Task<AuthResponseDTO> LoginAsync(LoginRequestDTO request)
     {
         var user = await _userRepository.GetByEmailAsync(request.Email);
-        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        if (user == null || user.PasswordHash == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
             return new AuthResponseDTO
             {

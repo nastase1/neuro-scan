@@ -33,6 +33,20 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Login with Google OAuth credential
+    /// </summary>
+    [HttpPost("google")]
+    public async Task<ActionResult<AuthResponseDTO>> GoogleLogin([FromBody] GoogleAuthRequestDTO request)
+    {
+        var result = await _authService.GoogleLoginAsync(request);
+
+        if (!result.Success)
+            return Unauthorized(result);
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Login with email and password
     /// </summary>
     [HttpPost("login")]

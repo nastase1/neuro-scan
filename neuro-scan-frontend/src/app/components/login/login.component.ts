@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -6,6 +6,9 @@ import { finalize } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { LoginRequest } from '../../models/api.models';
 import { APP_VERSION } from '../../config/app-version';
+import { environment } from '../../../environments/environment';
+
+declare var google: any;
 
 @Component({
   selector: 'app-login',
@@ -14,7 +17,9 @@ import { APP_VERSION } from '../../config/app-version';
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
 })
-export class LoginComponent {
+export class LoginComponent implements AfterViewInit {
+  @ViewChild('googleBtn') googleBtnRef!: ElementRef;
+
   loginRequest: LoginRequest = {
     email: '',
     password: ''
@@ -29,10 +34,46 @@ export class LoginComponent {
     private authService: AuthService,
     private router: Router
   ) {
-    // Redirect if already logged in
     if (this.authService.isAuthenticated()) {
       this.router.navigate([this.authService.getHomeRoute()]);
     }
+  }
+
+  ngAfterViewInit(): void {
+    if (typeof google === 'undefined') return;
+
+    google.accounts.id.initialize({
+      client_id: environment.googleClientId,
+      callback: (response: { credential: string }) => this.handleGoogleCredential(response.credential)
+    });
+
+    google.accounts.id.renderButton(this.googleBtnRef.nativeElement, {
+      theme: 'outline',
+      size: 'large',
+      width: '100%',
+      text: 'signin_with',
+      shape: 'rectangular'
+    });
+  }
+
+  private handleGoogleCredential(credential: string): void {
+    this.isLoading.set(true);
+    this.errorMessage.set('');
+
+    this.authService.googleLogin(credential).pipe(
+      finalize(() => this.isLoading.set(false))
+    ).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.router.navigate([this.authService.getHomeRoute()]);
+        } else {
+          this.errorMessage.set(response.message || 'Google login failed');
+        }
+      },
+      error: (error) => {
+        this.errorMessage.set(error.error?.message || 'Google login failed. Please try again.');
+      }
+    });
   }
 
   onSubmit(): void {

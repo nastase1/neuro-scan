@@ -26,6 +26,11 @@ public class LoginRequestDTO
     public required string Password { get; set; }
 }
 
+public class GoogleAuthRequestDTO
+{
+    public required string Credential { get; set; }
+}
+
 public class UserDTO
 {
     public Guid Id { get; set; }
