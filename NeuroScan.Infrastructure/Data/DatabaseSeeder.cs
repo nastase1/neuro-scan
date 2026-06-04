@@ -14,7 +14,6 @@ public static class DatabaseSeeder
             .ToListAsync();
         foreach (var d in existingDoctors)
         {
-            // Generate a unique code per doctor, retrying if there's a collision
             string code;
             do { code = GenerateInviteCode(); }
             while (await context.Users.AnyAsync(u => u.InviteCode == code));
@@ -50,6 +49,9 @@ public static class DatabaseSeeder
             adminUser.UpdatedAt = DateTime.UtcNow;
             await context.SaveChangesAsync();
         }
+
+        // Bulk seed doctors and patients — runs every startup, fully idempotent
+        await SeedBulkDataAsync(context);
 
         if (await context.Users.AnyAsync(u => u.Role != UserRole.Admin))
         {
@@ -113,6 +115,211 @@ public static class DatabaseSeeder
         Console.WriteLine("Database seeded successfully!");
         Console.WriteLine($"Doctor login: doctor@neuroscan.com / doctor123");
         Console.WriteLine($"User login: user@neuroscan.com / user123");
+    }
+
+    private static async Task SeedBulkDataAsync(ApplicationDbContext context)
+    {
+        // --- 20 doctori ---
+        var doctorSeedData = new[]
+        {
+            ("Ion",       "Popescu",     "dr.ion.popescu@neuroscan.com"),
+            ("Maria",     "Ionescu",     "dr.maria.ionescu@neuroscan.com"),
+            ("Alexandru", "Dumitrescu",  "dr.alexandru.dumitrescu@neuroscan.com"),
+            ("Elena",     "Popa",        "dr.elena.popa@neuroscan.com"),
+            ("Gheorghe",  "Constantin",  "dr.gheorghe.constantin@neuroscan.com"),
+            ("Ana",       "Muresan",     "dr.ana.muresan@neuroscan.com"),
+            ("Mihai",     "Stoica",      "dr.mihai.stoica@neuroscan.com"),
+            ("Ioana",     "Gheorghe",    "dr.ioana.gheorghe@neuroscan.com"),
+            ("Cristian",  "Moldovan",    "dr.cristian.moldovan@neuroscan.com"),
+            ("Laura",     "Stancu",      "dr.laura.stancu@neuroscan.com"),
+            ("Andrei",    "Radu",        "dr.andrei.radu@neuroscan.com"),
+            ("Daniela",   "Ene",         "dr.daniela.ene@neuroscan.com"),
+            ("Florin",    "Matei",       "dr.florin.matei@neuroscan.com"),
+            ("Simona",    "Tudor",       "dr.simona.tudor@neuroscan.com"),
+            ("Bogdan",    "Marin",       "dr.bogdan.marin@neuroscan.com"),
+            ("Roxana",    "Dima",        "dr.roxana.dima@neuroscan.com"),
+            ("Vlad",      "Nistor",      "dr.vlad.nistor@neuroscan.com"),
+            ("Raluca",    "Andrei",      "dr.raluca.andrei@neuroscan.com"),
+            ("Sorin",     "Blaga",       "dr.sorin.blaga@neuroscan.com"),
+            ("Camelia",   "Vasile",      "dr.camelia.vasile@neuroscan.com"),
+        };
+
+        var newDoctors = new List<User>();
+        var existingEmails = (await context.Users
+            .Select(u => u.Email.ToLower())
+            .ToListAsync()).ToHashSet();
+
+        foreach (var (first, last, email) in doctorSeedData)
+        {
+            if (existingEmails.Contains(email)) continue;
+
+            string code;
+            do { code = GenerateInviteCode(); }
+            while (await context.Users.AnyAsync(u => u.InviteCode == code)
+                   || newDoctors.Any(d => d.InviteCode == code));
+
+            newDoctors.Add(new User
+            {
+                Id = Guid.NewGuid(),
+                FirstName = first,
+                LastName = last,
+                Email = email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("doctor123"),
+                Role = UserRole.Doctor,
+                InviteCode = code,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        if (newDoctors.Count > 0)
+        {
+            await context.Users.AddRangeAsync(newDoctors);
+            await context.SaveChangesAsync();
+            Console.WriteLine($"[Seed] Adaugati {newDoctors.Count} doctori noi.");
+        }
+
+        // --- 500 pacienti distribuiti la doctori ---
+        const int targetPatientCount = 500;
+
+        var existingPatientCount = await context.Patients.CountAsync(p => p.DeletedAt == null);
+        var toAdd = targetPatientCount - existingPatientCount;
+
+        var allDoctors = await context.Users
+            .Where(u => u.Role == UserRole.Doctor && u.DeletedAt == null)
+            .ToListAsync();
+
+        if (allDoctors.Count == 0) return;
+
+        if (toAdd <= 0)
+        {
+            Console.WriteLine($"[Seed] Deja exista {existingPatientCount} pacienti, nu se adauga altii.");
+        }
+
+        if (toAdd > 0)
+        {
+            // Calculam urmatorul MRN disponibil
+            var existingMrns = await context.Patients
+                .Where(p => p.MedicalRecordNumber.StartsWith("MRN-"))
+                .Select(p => p.MedicalRecordNumber)
+                .ToListAsync();
+
+            int mrnCounter = 0;
+            foreach (var mrn in existingMrns)
+            {
+                if (int.TryParse(mrn[4..], out int num) && num > mrnCounter)
+                    mrnCounter = num;
+            }
+            mrnCounter++;
+
+            var firstNames = new[]
+            {
+                "Andrei", "Maria", "Ion", "Elena", "Mihai", "Ana", "Alexandru", "Ioana", "Cristian", "Laura",
+                "Bogdan", "Simona", "Vlad", "Daniela", "Florin", "Roxana", "Sorin", "Camelia", "Radu", "Alina",
+                "Gabriel", "Teodora", "Marius", "Adriana", "Dan", "Luminita", "Victor", "Irina", "Octavian", "Sabrina",
+                "Cosmin", "Diana", "Silviu", "Georgiana", "Darius", "Valentina", "Mircea", "Claudia", "Liviu", "Natalia",
+                "Paul", "Andreea", "Ciprian", "Oana", "Catalin", "Stefania", "Razvan", "Bianca", "Dragos", "Liana"
+            };
+
+            var lastNames = new[]
+            {
+                "Popescu", "Ionescu", "Popa", "Constantin", "Stoica", "Dumitrescu", "Radu", "Ene",
+                "Matei", "Tudor", "Marin", "Dima", "Nistor", "Blaga", "Vasile", "Cojocaru", "Lungu", "Negru",
+                "Macovei", "Oprea", "Vlad", "Barbu", "Neagu", "Moldovan", "Rusu", "Miron", "Cretu", "Luca",
+                "Dinu", "Avram", "Olaru", "Sandu", "Niculescu", "Toma", "Badea", "Zamfir", "Costache",
+                "Serban", "Ciobanu", "Petrescu", "Manolescu", "Florea", "Grigorescu", "Alexandrescu", "Marinescu"
+            };
+
+            var random = new Random(42);
+            var newPatients = new List<Patient>(toAdd);
+
+            for (int i = 0; i < toAdd; i++)
+            {
+                var doctor = allDoctors[i % allDoctors.Count];
+                var firstName = firstNames[random.Next(firstNames.Length)];
+                var lastName = lastNames[random.Next(lastNames.Length)];
+                var year = 1940 + random.Next(66);
+                var month = random.Next(1, 13);
+                var day = random.Next(1, DateTime.DaysInMonth(year, month) + 1);
+                var dob = new DateTime(year, month, day);
+                var mrn = $"MRN-{mrnCounter + i:D4}";
+                var daysAgo = random.Next(0, 730);
+
+                newPatients.Add(new Patient
+                {
+                    Id = Guid.NewGuid(),
+                    FirstName = firstName,
+                    LastName = lastName,
+                    DateOfBirth = dob,
+                    MedicalRecordNumber = mrn,
+                    Email = $"{firstName.ToLower()}.{lastName.ToLower()}{random.Next(10, 99)}@mail.com",
+                    CreatedByUserId = doctor.Id,
+                    CreatedAt = DateTime.UtcNow.AddDays(-daysAgo)
+                });
+            }
+
+            const int batchSize = 100;
+            for (int i = 0; i < newPatients.Count; i += batchSize)
+            {
+                await context.Patients.AddRangeAsync(newPatients.Skip(i).Take(batchSize));
+                await context.SaveChangesAsync();
+            }
+
+            Console.WriteLine($"[Seed] Adaugati {newPatients.Count} pacienti distribuiti la {allDoctors.Count} doctori.");
+        }
+
+        // --- 200 de useri (StandardUser) legati de pacienti ---
+        const int targetStandardUserCount = 200;
+
+        var existingStandardUserCount = await context.Users
+            .CountAsync(u => u.Role == UserRole.StandardUser && u.DeletedAt == null);
+
+        var usersToCreate = targetStandardUserCount - existingStandardUserCount;
+        if (usersToCreate <= 0)
+        {
+            Console.WriteLine($"[Seed] Deja exista {existingStandardUserCount} useri, nu se adauga altii.");
+            return;
+        }
+
+        var existingUserEmails = (await context.Users
+            .Select(u => u.Email.ToLower())
+            .ToListAsync()).ToHashSet();
+
+        var patientsForUsers = await context.Patients
+            .Where(p => p.DeletedAt == null && p.UserId == null && p.Email != null)
+            .OrderBy(p => p.CreatedAt)
+            .Take(usersToCreate * 2) // luam extra ca sa avem buffer pentru emailuri duplicate
+            .ToListAsync();
+
+        var newUsers = new List<User>();
+        foreach (var patient in patientsForUsers)
+        {
+            if (newUsers.Count >= usersToCreate) break;
+            if (patient.Email == null) continue;
+            if (existingUserEmails.Contains(patient.Email.ToLower())) continue;
+
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                FirstName = patient.FirstName,
+                LastName = patient.LastName,
+                Email = patient.Email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("user123"),
+                Role = UserRole.StandardUser,
+                AssignedDoctorId = patient.CreatedByUserId,
+                CreatedAt = patient.CreatedAt
+            };
+
+            patient.UserId = user.Id;
+            newUsers.Add(user);
+            existingUserEmails.Add(patient.Email.ToLower());
+        }
+
+        if (newUsers.Count > 0)
+        {
+            await context.Users.AddRangeAsync(newUsers);
+            await context.SaveChangesAsync();
+            Console.WriteLine($"[Seed] Adaugati {newUsers.Count} useri (StandardUser) legati de pacienti.");
+        }
     }
 
     private static string GenerateInviteCode()
