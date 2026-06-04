@@ -196,7 +196,7 @@
   >
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div
-        *ngFor="let patient of filteredPatients; let i = index"
+        *ngFor="let patient of pagedPatients; let i = index"
         (click)="viewPatient(patient.id)"
         class="glass-card glass-card-hover p-6 cursor-pointer group animate-slide-up"
         [style.animation-delay]="i * 0.1 + 's'"
@@ -306,11 +306,65 @@
       </div>
     </div>
 
+    <!-- Pagination -->
+    <div
+      *ngIf="totalPages > 1"
+      class="mt-8 flex items-center justify-center flex-wrap gap-2"
+    >
+      <button
+        (click)="goToPage(currentPage() - 1)"
+        [disabled]="currentPage() === 1"
+        class="px-3 py-2 glass-card text-gray-300 rounded-lg hover:bg-slate-700/70 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 19l-7-7 7-7"
+          ></path>
+        </svg>
+      </button>
+
+      <button
+        *ngFor="let page of pageNumbers"
+        (click)="goToPage(page)"
+        class="min-w-[2.5rem] px-3 py-2 rounded-lg text-sm font-semibold transition-all"
+        [ngClass]="
+          page === currentPage()
+            ? 'bg-gradient-to-r from-cyan-500 to-teal-500 text-white shadow-lg shadow-cyan-500/30'
+            : 'glass-card text-gray-300 hover:bg-slate-700/70'
+        "
+      >
+        {{ page }}
+      </button>
+
+      <button
+        (click)="goToPage(currentPage() + 1)"
+        [disabled]="currentPage() === totalPages"
+        class="px-3 py-2 glass-card text-gray-300 rounded-lg hover:bg-slate-700/70 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 5l7 7-7 7"
+          ></path>
+        </svg>
+      </button>
+    </div>
+
     <!-- Patient Count -->
-    <div class="mt-8 text-center">
+    <div class="mt-6 text-center">
       <p class="text-gray-400 text-sm">
-        Showing {{ filteredPatients.length }} of
-        {{ patients().length }} patients
+        Showing {{ pagedPatients.length }} of {{ filteredPatients.length }}
+        <span *ngIf="filteredPatients.length !== patients().length"
+          >filtered</span
+        >
+        patients<span *ngIf="totalPages > 1">
+          — page {{ currentPage() }} of {{ totalPages }}</span
+        >
       </p>
     </div>
   </div>

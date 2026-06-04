@@ -18,6 +18,10 @@ export class PatientListComponent implements OnInit {
   errorMessage = signal('');
   searchQuery = signal('');
 
+  // Pagination
+  pageSize = signal(9);
+  currentPage = signal(1);
+
   constructor(
     private patientService: PatientService,
     private router: Router
@@ -63,8 +67,29 @@ export class PatientListComponent implements OnInit {
     );
   }
 
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredPatients.length / this.pageSize()));
+  }
+
+  get pagedPatients(): Patient[] {
+    const page = Math.min(this.currentPage(), this.totalPages);
+    const start = (page - 1) * this.pageSize();
+    return this.filteredPatients.slice(start, start + this.pageSize());
+  }
+
+  get pageNumbers(): number[] {
+    return Array.from({ length: this.totalPages }, (_, i) => i + 1);
+  }
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage.set(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   onSearchChange(value: string): void {
     this.searchQuery.set(value);
+    this.currentPage.set(1);
   }
 
   createPatient(): void {
@@ -90,6 +115,10 @@ export class PatientListComponent implements OnInit {
         next: () => {
           const updatedPatients = this.patients().filter(p => p.id !== patientId);
           this.patients.set(updatedPatients);
+          // Clamp page if the last item on the last page was removed
+          if (this.currentPage() > this.totalPages) {
+            this.currentPage.set(this.totalPages);
+          }
         },
         error: (error) => {
           console.error('Error deleting patient:', error);
