@@ -47,12 +47,17 @@ export class LoginComponent implements AfterViewInit {
       callback: (response: { credential: string }) => this.handleGoogleCredential(response.credential)
     });
 
+    // Match the Google button width to its container (Google caps it at 400px)
+    const containerWidth = this.googleBtnRef.nativeElement.clientWidth || 360;
+    const width = Math.min(Math.round(containerWidth), 400);
+
     google.accounts.id.renderButton(this.googleBtnRef.nativeElement, {
       theme: 'outline',
       size: 'large',
-      width: '100%',
-      text: 'signin_with',
-      shape: 'rectangular'
+      width,
+      text: 'continue_with',
+      shape: 'pill',
+      logo_alignment: 'center'
     });
   }
 
