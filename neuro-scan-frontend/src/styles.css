@@ -101,6 +101,113 @@ svg {
   }
 }
 
+/* ============================================================
+   Auth pages (login / register / forgot-password)
+   Static organic cyan/teal background — no animation.
+   Add class "ns-auth" on the full-screen wrapper.
+   ============================================================ */
+.ns-auth {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(34, 211, 238, 0.10), transparent 28%),
+    radial-gradient(circle at 78% 82%, rgba(20, 184, 166, 0.10), transparent 30%),
+    radial-gradient(circle at 88% 12%, rgba(56, 189, 248, 0.08), transparent 24%),
+    linear-gradient(145deg, #050a14 0%, #0d1830 52%, #0b1324 100%);
+}
+
+.ns-auth::before,
+.ns-auth::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  filter: blur(55px);
+}
+
+/* Top-left cyan blob */
+.ns-auth::before {
+  top: -7rem;
+  left: -5rem;
+  width: 30rem;
+  height: 30rem;
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.32), rgba(56, 189, 248, 0.10));
+  border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%;
+}
+
+/* Bottom-right teal blob */
+.ns-auth::after {
+  bottom: -8rem;
+  right: -6rem;
+  width: 34rem;
+  height: 34rem;
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.30), rgba(13, 148, 136, 0.08));
+  border-radius: 63% 37% 38% 62% / 49% 57% 43% 51%;
+}
+
+/* Decorative layer behind the auth card (shapes + frosted logo) */
+.ns-auth-decor {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Large logo sitting behind the glass card — shows frosted through it */
+.ns-auth-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20rem;
+  height: 20rem;
+  transform: translate(-50%, -50%);
+  opacity: 0.16;
+  filter: drop-shadow(0 0 34px rgba(34, 211, 238, 0.3));
+}
+
+/* Scattered organic shapes */
+.ns-auth-shape {
+  position: absolute;
+  filter: blur(34px);
+  opacity: 0.5;
+}
+
+.ns-auth-shape-1 {
+  top: 14%;
+  left: 23%;
+  width: 12rem;
+  height: 12rem;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.5), rgba(34, 211, 238, 0.18));
+  border-radius: 59% 41% 47% 53% / 47% 56% 44% 53%;
+}
+
+.ns-auth-shape-2 {
+  top: 28%;
+  right: 17%;
+  width: 14rem;
+  height: 14rem;
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.45), rgba(45, 212, 191, 0.15));
+  border-radius: 38% 62% 63% 37% / 56% 44% 56% 44%;
+}
+
+.ns-auth-shape-3 {
+  bottom: 12%;
+  left: 29%;
+  width: 13rem;
+  height: 13rem;
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.4), rgba(56, 189, 248, 0.12));
+  border-radius: 50% 50% 33% 67% / 63% 38% 62% 37%;
+}
+
+/* Auth card: translucent + stronger blur so the logo & shapes show through the glass */
+.ns-auth > .glass-card {
+  background: linear-gradient(180deg, rgba(13, 24, 48, 0.55) 0%, rgba(11, 19, 36, 0.6) 100%);
+  border-color: rgba(56, 189, 248, 0.24);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
 /* Apply premium page atmosphere to existing screen wrappers without rewriting each template. */
 .min-h-screen.bg-gradient-to-br.from-slate-900.via-slate-800.to-slate-900 {
   position: relative;

@@ -85,13 +85,11 @@ export const routes: Routes = [
   {
     path: 'terms',
     component: LegalPageComponent,
-    canActivate: [authGuard],
     data: { pageType: 'terms' }
   },
   {
     path: 'privacy',
     component: LegalPageComponent,
-    canActivate: [authGuard],
     data: { pageType: 'privacy' }
   },
   {

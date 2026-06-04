@@ -25,6 +25,7 @@ export class RegisterComponent {
   };
 
   confirmPassword = '';
+  acceptedTerms = false;
   isLoading = signal(false);
   errorMessage = signal('');
   showPassword = false;
@@ -57,6 +58,11 @@ export class RegisterComponent {
 
     if (this.registerRequest.password.length < 6) {
       this.errorMessage.set('Password must be at least 6 characters long');
+      return;
+    }
+
+    if (!this.acceptedTerms) {
+      this.errorMessage.set('You must accept the Terms of Service and Privacy Policy');
       return;
     }
 
