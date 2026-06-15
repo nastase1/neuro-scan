@@ -1,0 +1,38 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=../NeuroScan.Infrastructure/neuroscan.db"
+  },
+  "Jwt": {
+    "Key": "REPLACE_WITH_A_SECRET_OF_AT_LEAST_32_CHARS",
+    "Issuer": "NeuroScanAPI",
+    "Audience": "NeuroScanClient"
+  },
+  "Google": {
+    "ClientId": "YOUR_GOOGLE_OAUTH_CLIENT_ID"
+  },
+  "PythonAiService": {
+    "Url": "http://localhost:8000"
+  },
+  "OpenAI": {
+    "ApiKey": "YOUR_OPENAI_API_KEY"
+  },
+  "Storage": {
+    "UploadPath": "uploads/scans",
+    "TrainingDataPath": "uploads/training-data"
+  },
+  "Email": {
+    "SmtpHost": "smtp.gmail.com",
+    "SmtpPort": 587,
+    "SmtpUser": "your-address@gmail.com",
+    "SmtpPassword": "YOUR_SMTP_APP_PASSWORD",
+    "FromEmail": "your-address@gmail.com",
+    "FromName": "NeuroScan"
+  }
+}

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using NeuroScan.Domain.Entities;
 using NeuroScan.Infrastructure.Context;
 
@@ -6,7 +7,7 @@ namespace NeuroScan.Infrastructure.Data;
 
 public static class DatabaseSeeder
 {
-    public static async Task SeedAsync(ApplicationDbContext context)
+    public static async Task SeedAsync(ApplicationDbContext context, ILogger logger)
     {
         // Ensure existing doctors have invite codes (handles post-migration updates)
         var existingDoctors = await context.Users
@@ -51,7 +52,7 @@ public static class DatabaseSeeder
         }
 
         // Bulk seed doctors and patients — runs every startup, fully idempotent
-        await SeedBulkDataAsync(context);
+        await SeedBulkDataAsync(context, logger);
 
         if (await context.Users.AnyAsync(u => u.Role != UserRole.Admin))
         {
@@ -112,14 +113,13 @@ public static class DatabaseSeeder
         await context.Patients.AddRangeAsync(patients);
         await context.SaveChangesAsync();
 
-        Console.WriteLine("Database seeded successfully!");
-        Console.WriteLine($"Doctor login: doctor@neuroscan.com / doctor123");
-        Console.WriteLine($"User login: user@neuroscan.com / user123");
+        logger.LogInformation("Database seeded successfully!");
+        logger.LogInformation("Doctor login: doctor@neuroscan.com / doctor123");
+        logger.LogInformation("User login: user@neuroscan.com / user123");
     }
 
-    private static async Task SeedBulkDataAsync(ApplicationDbContext context)
+    private static async Task SeedBulkDataAsync(ApplicationDbContext context, ILogger logger)
     {
-        // --- 20 doctori ---
         var doctorSeedData = new[]
         {
             ("Ion",       "Popescu",     "dr.ion.popescu@neuroscan.com"),
@@ -175,10 +175,9 @@ public static class DatabaseSeeder
         {
             await context.Users.AddRangeAsync(newDoctors);
             await context.SaveChangesAsync();
-            Console.WriteLine($"[Seed] Adaugati {newDoctors.Count} doctori noi.");
+            logger.LogInformation("[Seed] Added {Count} new doctors.", newDoctors.Count);
         }
 
-        // --- 500 pacienti distribuiti la doctori ---
         const int targetPatientCount = 500;
 
         var existingPatientCount = await context.Patients.CountAsync(p => p.DeletedAt == null);
@@ -192,12 +191,11 @@ public static class DatabaseSeeder
 
         if (toAdd <= 0)
         {
-            Console.WriteLine($"[Seed] Deja exista {existingPatientCount} pacienti, nu se adauga altii.");
+            logger.LogInformation("[Seed] {Count} patients already exist, none added.", existingPatientCount);
         }
 
         if (toAdd > 0)
         {
-            // Calculam urmatorul MRN disponibil
             var existingMrns = await context.Patients
                 .Where(p => p.MedicalRecordNumber.StartsWith("MRN-"))
                 .Select(p => p.MedicalRecordNumber)
@@ -264,10 +262,9 @@ public static class DatabaseSeeder
                 await context.SaveChangesAsync();
             }
 
-            Console.WriteLine($"[Seed] Adaugati {newPatients.Count} pacienti distribuiti la {allDoctors.Count} doctori.");
+            logger.LogInformation("[Seed] Added {PatientCount} patients distributed across {DoctorCount} doctors.", newPatients.Count, allDoctors.Count);
         }
 
-        // --- 200 de useri (StandardUser) legati de pacienti ---
         const int targetStandardUserCount = 200;
 
         var existingStandardUserCount = await context.Users
@@ -276,7 +273,7 @@ public static class DatabaseSeeder
         var usersToCreate = targetStandardUserCount - existingStandardUserCount;
         if (usersToCreate <= 0)
         {
-            Console.WriteLine($"[Seed] Deja exista {existingStandardUserCount} useri, nu se adauga altii.");
+            logger.LogInformation("[Seed] {Count} users already exist, none added.", existingStandardUserCount);
             return;
         }
 
@@ -287,7 +284,7 @@ public static class DatabaseSeeder
         var patientsForUsers = await context.Patients
             .Where(p => p.DeletedAt == null && p.UserId == null && p.Email != null)
             .OrderBy(p => p.CreatedAt)
-            .Take(usersToCreate * 2) // luam extra ca sa avem buffer pentru emailuri duplicate
+            .Take(usersToCreate * 2) // take extra as a buffer for duplicate emails
             .ToListAsync();
 
         var newUsers = new List<User>();
@@ -318,7 +315,7 @@ public static class DatabaseSeeder
         {
             await context.Users.AddRangeAsync(newUsers);
             await context.SaveChangesAsync();
-            Console.WriteLine($"[Seed] Adaugati {newUsers.Count} useri (StandardUser) legati de pacienti.");
+            logger.LogInformation("[Seed] Added {Count} users (StandardUser) linked to patients.", newUsers.Count);
         }
     }
 

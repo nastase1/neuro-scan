@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NeuroScan.Application.IServices;
@@ -15,6 +16,7 @@ public class AuthServiceTests
     private readonly Mock<IJwtTokenService> _jwtTokenService;
     private readonly Mock<IEmailService> _emailService;
     private readonly Mock<ILogger<AuthService>> _logger;
+    private readonly Mock<IConfiguration> _configuration;
     private readonly AuthService _sut;
 
     public AuthServiceTests()
@@ -24,13 +26,16 @@ public class AuthServiceTests
         _jwtTokenService = new Mock<IJwtTokenService>();
         _emailService = new Mock<IEmailService>();
         _logger = new Mock<ILogger<AuthService>>();
+        _configuration = new Mock<IConfiguration>();
+        _configuration.Setup(c => c["Google:ClientId"]).Returns("test-google-client-id");
 
         _sut = new AuthService(
             _userRepo.Object,
             _patientRepo.Object,
             _jwtTokenService.Object,
             _emailService.Object,
-            _logger.Object);
+            _logger.Object,
+            _configuration.Object);
     }
 
     // ── RegisterAsync ──────────────────────────────────────────────────────────

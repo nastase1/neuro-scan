@@ -83,8 +83,9 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
+        var seedLogger = services.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseSeeder");
         await context.Database.MigrateAsync();
-        await DatabaseSeeder.SeedAsync(context);
+        await DatabaseSeeder.SeedAsync(context, seedLogger);
     }
     catch (Exception ex)
     {
