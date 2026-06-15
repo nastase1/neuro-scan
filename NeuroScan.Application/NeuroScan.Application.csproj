@@ -2,7 +2,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\NeuroScan.Domain\NeuroScan.Domain.csproj" />
-    <ProjectReference Include="..\NeuroScan.Shared\NeuroScan.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

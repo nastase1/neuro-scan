@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NeuroScan.Application.IServices;
+using NeuroScan.Application.DTOs;
 using NeuroScan.Domain.Entities;
 using NeuroScan.Infrastructure.Context;
 

@@ -19,7 +19,6 @@
   <ItemGroup>
     <ProjectReference Include="..\NeuroScan.Application\NeuroScan.Application.csproj" />
     <ProjectReference Include="..\NeuroScan.Infrastructure\NeuroScan.Infrastructure.csproj" />
-    <ProjectReference Include="..\NeuroScan.Shared\NeuroScan.Shared.csproj" />
   </ItemGroup>
 
 </Project>

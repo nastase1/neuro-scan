@@ -1,5 +1,6 @@
 using NeuroScan.Application.Helpers;
 using NeuroScan.Application.IServices;
+using NeuroScan.Application.DTOs;
 using NeuroScan.Domain.Entities;
 using NeuroScan.Domain.IRepositories;
 

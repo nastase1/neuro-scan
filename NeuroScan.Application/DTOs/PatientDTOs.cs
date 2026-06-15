@@ -1,4 +1,4 @@
-namespace NeuroScan.Application.IServices;
+namespace NeuroScan.Application.DTOs;
 
 public class PatientDTO
 {

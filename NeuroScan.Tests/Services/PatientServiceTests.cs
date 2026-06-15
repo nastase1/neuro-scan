@@ -1,5 +1,6 @@
 using Moq;
 using NeuroScan.Application.IServices;
+using NeuroScan.Application.DTOs;
 using NeuroScan.Application.Services;
 using NeuroScan.Domain.Entities;
 using NeuroScan.Domain.IRepositories;

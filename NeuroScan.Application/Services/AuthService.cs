@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NeuroScan.Application.Constants;
 using NeuroScan.Application.IServices;
+using NeuroScan.Application.DTOs;
 using NeuroScan.Domain.Entities;
 using NeuroScan.Domain.IRepositories;
 using BCrypt.Net;

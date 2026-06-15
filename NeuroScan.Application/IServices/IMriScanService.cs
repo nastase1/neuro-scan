@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Http;
 
+using NeuroScan.Application.DTOs;
+
 namespace NeuroScan.Application.IServices;
 
 public interface IMriScanService

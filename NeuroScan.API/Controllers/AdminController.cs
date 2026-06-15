@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NeuroScan.Application.IServices;
+using NeuroScan.Application.DTOs;
 
 namespace NeuroScan.API.Controllers;
 

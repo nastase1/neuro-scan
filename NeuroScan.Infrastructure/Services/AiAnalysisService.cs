@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Configuration;
 using NeuroScan.Application.IServices;
+using NeuroScan.Application.DTOs;
 
 namespace NeuroScan.Infrastructure.Services;
 

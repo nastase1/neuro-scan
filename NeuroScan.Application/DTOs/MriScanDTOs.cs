@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using NeuroScan.Domain.Entities;
 
-namespace NeuroScan.Application.IServices;
+namespace NeuroScan.Application.DTOs;
 
 public class MriScanUploadDTO
 {
